@@ -1066,7 +1066,8 @@ static int f2fs_readdir(struct file *file, struct dir_context *ctx)
 	unsigned int n = ((unsigned long)ctx->pos / NR_DENTRY_IN_BLOCK);
 	struct f2fs_dentry_ptr d;
 	struct fscrypt_str fstr = FSTR_INIT(NULL, 0);
-	int err = 0;
+	int err = 0, readdir_ra = F2FS_I_SB(inode)->readdir_ra;
+	struct blk_plug plug;
 
 	if (IS_ENCRYPTED(inode)) {
 		err = fscrypt_get_encryption_info(inode);
@@ -1083,11 +1084,15 @@ static int f2fs_readdir(struct file *file, struct dir_context *ctx)
 		goto out_free;
 	}
 
+	if (readdir_ra == 1)
+		blk_start_plug(&plug);
 	for (; n < npages; n++, ctx->pos = n * NR_DENTRY_IN_BLOCK) {
 
 		/* allow readdir() to be interrupted */
 		if (fatal_signal_pending(current)) {
 			err = -ERESTARTSYS;
+			if (readdir_ra == 1)
+				blk_finish_plug(&plug);
 			goto out_free;
 		}
 		cond_resched();
@@ -1097,13 +1102,15 @@ static int f2fs_readdir(struct file *file, struct dir_context *ctx)
 			page_cache_sync_readahead(inode->i_mapping, ra, file, n,
 				min(npages - n, (pgoff_t)MAX_DIR_RA_PAGES));
 
-		dentry_page = f2fs_find_data_page(inode, n);
+		dentry_page = f2fs_get_lock_data_page(inode, n, false);
 		if (IS_ERR(dentry_page)) {
 			err = PTR_ERR(dentry_page);
 			if (err == -ENOENT) {
 				err = 0;
 				continue;
 			} else {
+				if (readdir_ra == 1)
+					blk_finish_plug(&plug);
 				goto out_free;
 			}
 		}
@@ -1115,12 +1122,14 @@ static int f2fs_readdir(struct file *file, struct dir_context *ctx)
 		err = f2fs_fill_dentries(ctx, &d,
 				n * NR_DENTRY_IN_BLOCK, &fstr);
 		if (err) {
-			f2fs_put_page(dentry_page, 0);
+			f2fs_put_page(dentry_page, 1);
 			break;
 		}
 
-		f2fs_put_page(dentry_page, 0);
+		f2fs_put_page(dentry_page, 1);
 	}
+	if (readdir_ra == 1)
+		blk_finish_plug(&plug);
 out_free:
 	fscrypt_fname_free_buffer(&fstr);
 out:
