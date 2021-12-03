@@ -349,4 +349,6 @@ config GENERIC_ARCH_TOPOLOGY
 	  appropriate scaling, sysfs interface for changing capacity values at
 	  runtime.
 
+source "drivers/base/power/owakelock/Kconfig"
+
 endmenu
