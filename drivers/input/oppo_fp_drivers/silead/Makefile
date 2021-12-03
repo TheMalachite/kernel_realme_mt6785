@@ -24,11 +24,7 @@ ifeq ($(CONFIG_TRUSTONIC_TEE_SUPPORT),y)
    subdir-ccflags-y += -I$(srctree)/drivers/spi/trustzone/spi/Tlspi/inc
  endif
 ifeq ($(CONFIG_TRUSTONIC_TEE_SUPPORT),y)
-ifneq ($(filter kernel-4.19, $(LINUX_KERNEL_VERSION)),)
-  include $(srctree)/drivers/tee/gud/Makefile.include
-else ifneq ($(filter kernel-4.14 kernel-4.9, $(LINUX_KERNEL_VERSION)),)
   include $(srctree)/drivers/misc/mediatek/gud/Makefile.include
-endif
 endif
  endif
 
