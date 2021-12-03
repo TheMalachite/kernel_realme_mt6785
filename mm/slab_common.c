@@ -980,6 +980,18 @@ struct kmem_cache *kmalloc_slab(size_t size, gfp_t flags)
 		index = fls(size - 1);
 	}
 
+#if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_KMALLOC_DEBUG)
+	/* Kui.Zhang@tech.kernel.mm, 2020-02-13, try to kmalloc from kmalloc_debug
+	 * caches fisrt.
+	 */
+	if (unlikely(kmalloc_debug_enable)) {
+		struct kmem_cache *s;
+
+		s = (struct kmem_cache *)atomic64_read(&kmalloc_debug_caches[kmalloc_type(flags)][index]);
+		if (unlikely(s))
+			return s;
+	}
+#endif
 	return kmalloc_caches[kmalloc_type(flags)][index];
 }
 
@@ -1290,6 +1302,12 @@ static void cache_show(struct kmem_cache *s, struct seq_file *m)
 
 	seq_printf(m, " : tunables %4u %4u %4u",
 		   sinfo.limit, sinfo.batchcount, sinfo.shared);
+#ifdef OPLUS_FEATURE_HEALTHINFO
+	/* If SLAB_STAT_DEBUG is enabled, /proc/slabinfo is created for getting more slab details. */
+        seq_printf(m, " : slabdata %6lu %6lu %6lu %1d",
+                           sinfo.active_slabs, sinfo.num_slabs, sinfo.shared_avail,
+                           ((s->flags & SLAB_RECLAIM_ACCOUNT) == SLAB_RECLAIM_ACCOUNT) ? 1: 0);
+#endif /* OPLUS_FEATURE_HEALTHINFO */
 	seq_printf(m, " : slabdata %6lu %6lu %6lu",
 		   sinfo.active_slabs, sinfo.num_slabs, sinfo.shared_avail);
 	slabinfo_show_stats(m, s);
