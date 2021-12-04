@@ -16,7 +16,6 @@
 #include <linux/fb.h>
 #include <linux/time.h>
 #include <linux/timekeeping.h>
-#include <linux/oppo_mm_kevent_fb.h>
 #include <linux/delay.h>
 /* Zhijun.ye@PSW.MM.Display.LCD.Stability, 2019/11/22,
  * add for enable dc by default on special version */

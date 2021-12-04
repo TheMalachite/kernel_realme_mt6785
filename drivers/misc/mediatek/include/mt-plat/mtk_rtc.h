@@ -59,10 +59,6 @@ extern void oppo_rtc_mark_safe(void);
 extern void oppo_rtc_mark_sensor_cause_panic(void);
 extern int oppo_get_rtc_sensor_cause_panic_value(void);
 extern void oppo_clear_rtc_sensor_cause_panic(void);
-#ifdef OPLUS_FEATURE_AGINGTEST
-//xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest
-extern void oppo_rtc_mark_agingtest(void);
-#endif /*OPLUS_FEATURE_AGINGTEST */
 #endif /* VENDOR_EDIT */
 extern u16 rtc_rdwr_uart_bits(u16 *val);
 extern void rtc_bbpu_power_down(void);
@@ -104,10 +100,6 @@ extern bool crystal_exist_status(void);
 #define oppo_rtc_mark_sensor_cause_panic()			do {} while (0)
 #define oppo_get_rtc_sensor_cause_panic_value()		do {} while (0)
 #define oppo_clear_rtc_sensor_cause_panic()			do {} while (0)
-/* xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest */
-#ifdef OPLUS_FEATURE_AGINGTEST
-#define oppo_rtc_mark_agingtest()    do {} while (0)
-#endif /*OPLUS_FEATURE_AGINGTEST */
 #endif /* VENDOR_EDIT */
 #define rtc_read_pwron_alarm(alm)	({ 0; })
 #define get_rtc_spare_fg_value()	({ 0; })

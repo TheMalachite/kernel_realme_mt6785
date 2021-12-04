@@ -202,10 +202,6 @@
 #define CAM_REG_CTL_CD_DONE_SEL(module)  (isp_devs[module].regs + 0x0048)
 #define CAM_REG_CTL_UNI_DONE_SEL(module)  (isp_devs[module].regs + 0x004C)
 #define CAM_REG_CTL_TWIN_STATUS(module)  (isp_devs[module].regs + 0x0050)
-#ifdef OPLUS_FEATURE_PERFORMANCE
-//xiaowei.xu@cam.drv, 20210514, add for fix isp drop request
-#define CAM_REG_CTL_SPARE2(module)  (isp_devs[module].regs + 0x0058)
-#endif
 
 #define CAM_REG_FBC_IMGO_CTL1(module)  (isp_devs[module].regs + 0x0110)
 #define CAM_REG_FBC_IMGO_CTL2(module)  (isp_devs[module].regs + 0x0114)

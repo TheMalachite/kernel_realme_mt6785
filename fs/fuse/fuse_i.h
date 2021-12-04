@@ -1013,10 +1013,5 @@ int fuse_set_acl(struct inode *inode, struct posix_acl *acl, int type);
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
 extern int sct_mode;
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
-#ifdef CONFIG_OPLUS_FEATURE_ACM
-//Yuwei.Guan@BSP.Kernel.FS,2020/07/08, Add for acm
-void acm_fuse_init_cache(void);
-void acm_fuse_free_cache(void);
-#endif
 
 #endif /* _FS_FUSE_I_H */

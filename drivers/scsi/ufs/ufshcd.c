@@ -85,7 +85,10 @@
 
 /* NOP OUT retries waiting for NOP IN response */
 #define NOP_OUT_RETRIES    10
-
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
+#define UFS_FFU_DOWNLOAD_MODE 0x0E
+#endif
 /* MTK PATCH */
 /* Timeout after 100 msecs if NOP OUT hangs without response */
 #define NOP_OUT_TIMEOUT    100 /* msecs */
@@ -264,28 +267,6 @@ static struct ufs_dev_fix ufs_fixups[] = {
 	UFS_FIX(UFS_VENDOR_SKHYNIX, UFS_ANY_MODEL,
 		UFS_DEVICE_QUIRK_LIMITED_RPMB_MAX_RW_SIZE),
 	UFS_FIX(UFS_VENDOR_MICRON, UFS_ANY_MODEL,
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28S8D301DMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28S9Q301CMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28SAO301MMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28S8Y401DMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28S9X401CMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28SAW401MMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ21AFAMZDAR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ21AECMZDAR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ15AFAMADAR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ15AECMADAR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ15ACPMADAR",
 		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
 
 	/* MTK PATCH */
@@ -1774,87 +1755,6 @@ out:
 	return count;
 }
 
-#ifdef OPLUS_FEATURE_MIDAS
-//Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
-static ssize_t ufshcd_transmission_status_data_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct ufs_hba *hba = dev_get_drvdata(dev);
-
-	return snprintf(buf, PAGE_SIZE,
-					"transmission_status_enable:%u\n"
-					"gear_min_write_sec:%llu\n"
-					"gear_max_write_sec:%llu\n"
-					"gear_min_read_sec:%llu\n"
-					"gear_max_read_sec:%llu\n"
-					"gear_min_write_us:%llu\n"
-					"gear_max_write_us:%llu\n"
-					"gear_min_read_us:%llu\n"
-					"gear_max_read_us:%llu\n"
-					"gear_min_dev_us:%llu\n"
-					"gear_max_dev_us:%llu\n"
-					"gear_min_other_sec:%llu\n"
-					"gear_max_other_sec:%llu\n"
-					"gear_min_other_us:%llu\n"
-					"gear_max_other_us:%llu\n"
-					"scsi_send_count:%llu\n"
-					"dev_cmd_count:%llu\n",
-					hba->ufs_transmission_status.transmission_status_enable,
-					hba->ufs_transmission_status.gear_min_write_sec,
-					hba->ufs_transmission_status.gear_max_write_sec,
-					hba->ufs_transmission_status.gear_min_read_sec,
-					hba->ufs_transmission_status.gear_max_read_sec,
-					hba->ufs_transmission_status.gear_min_write_us,
-					hba->ufs_transmission_status.gear_max_write_us,
-					hba->ufs_transmission_status.gear_min_read_us,
-					hba->ufs_transmission_status.gear_max_read_us,
-					hba->ufs_transmission_status.gear_min_dev_us,
-					hba->ufs_transmission_status.gear_max_dev_us,
-					hba->ufs_transmission_status.gear_min_other_sec,
-					hba->ufs_transmission_status.gear_max_other_sec,
-					hba->ufs_transmission_status.gear_min_other_us,
-					hba->ufs_transmission_status.gear_max_other_us,
-					hba->ufs_transmission_status.scsi_send_count,
-					hba->ufs_transmission_status.dev_cmd_count);
-}
-
-static ssize_t ufshcd_transmission_status_data_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct ufs_hba *hba = dev_get_drvdata(dev);
-	u32 value;
-
-	if (kstrtou32(buf, 0, &value))
-		return -EINVAL;
-
-	value = !!value;
-
-	if (value) {
-		hba->ufs_transmission_status.transmission_status_enable = 1;
-	} else {
-		hba->ufs_transmission_status.transmission_status_enable = 0;
-		memset(&hba->ufs_transmission_status, 0, sizeof(struct ufs_transmission_status_t));
-	}
-
-	return count;
-}
-
-static void ufshcd_transmission_status_init_sysfs(struct ufs_hba *hba)
-{
-	hba->ufs_transmission_status_attr.show = ufshcd_transmission_status_data_show;
-	hba->ufs_transmission_status_attr.store = ufshcd_transmission_status_data_store;
-	sysfs_attr_init(&hba->ufs_transmission_status_attr.attr);
-	hba->ufs_transmission_status_attr.attr.name = "ufs_transmission_status";
-	hba->ufs_transmission_status_attr.attr.mode = 0644;
-	if (device_create_file(hba->dev, &hba->ufs_transmission_status_attr))
-		dev_err(hba->dev, "Failed to create sysfs for ufs_transmission_status_attr\n");
-
-	/*init the struct ufs_transmission_status*/
-	memset(&hba->ufs_transmission_status, 0, sizeof(struct ufs_transmission_status_t));
-	hba->ufs_transmission_status.transmission_status_enable = 1;
-}
-#endif /*OPLUS_FEATURE_MIDAS*/
-
 static void ufshcd_clkscaling_init_sysfs(struct ufs_hba *hba)
 {
 	hba->clk_scaling.enable_attr.show = ufshcd_clkscale_enable_show;
@@ -2297,16 +2197,6 @@ void ufshcd_send_command(struct ufs_hba *hba, unsigned int task_tag)
 		ufshcd_cond_add_cmd_trace(hba, task_tag, UFS_TRACE_SEND);
 	else
 		ufshcd_cond_add_cmd_trace(hba, task_tag, UFS_TRACE_DEV_SEND);
-#ifdef OPLUS_FEATURE_MIDAS
-//Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
-	if (hba->ufs_transmission_status.transmission_status_enable) {
-		if(hba->lrb[task_tag].cmd) {
-			hba->ufs_transmission_status.scsi_send_count++;
-		} else {
-			hba->ufs_transmission_status.dev_cmd_count++;
-		}
-	}
-#endif
 }
 
 /**
@@ -2881,6 +2771,90 @@ static inline u16 ufshcd_upiu_wlun_to_scsi_wlun(u8 upiu_wlun_id)
 }
 */
 
+
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
+static int ufshcd_ffu_wait_for_doorbell_clr(struct ufs_hba *hba,
+					u64 wait_timeout_us)
+{
+	unsigned long flags;
+	int ret = 0;
+	u32 tm_doorbell;
+	u32 tr_doorbell;
+	bool timeout = false, do_last_check = false;
+	ktime_t start;
+
+	spin_lock_irqsave(hba->host->host_lock, flags);
+	/*
+	 * Wait for all the outstanding tasks/transfer requests.
+	 * Verify by checking the doorbell registers are clear.
+	 */
+	start = ktime_get();
+	do {
+		if (hba->ufshcd_state != UFSHCD_STATE_OPERATIONAL) {
+			ret = -EBUSY;
+			goto out;
+		}
+
+		tm_doorbell = ufshcd_readl(hba, REG_UTP_TASK_REQ_DOOR_BELL);
+		tr_doorbell = ufshcd_readl(hba, REG_UTP_TRANSFER_REQ_DOOR_BELL);
+		if (!tm_doorbell && !tr_doorbell) {
+			timeout = false;
+			break;
+		} else if (do_last_check) {
+			break;
+		}
+
+		spin_unlock_irqrestore(hba->host->host_lock, flags);
+		schedule();
+		if (ktime_to_us(ktime_sub(ktime_get(), start)) >
+		    wait_timeout_us) {
+			timeout = true;
+			/*
+			 * We might have scheduled out for long time so make
+			 * sure to check if doorbells are cleared by this time
+			 * or not.
+			 */
+			do_last_check = true;
+		}
+		spin_lock_irqsave(hba->host->host_lock, flags);
+	} while (tm_doorbell || tr_doorbell);
+
+	if (timeout) {
+		dev_err(hba->dev,
+			"%s: timedout waiting for doorbell to clear (tm=0x%x, tr=0x%x)\n",
+			__func__, tm_doorbell, tr_doorbell);
+		ret = -EBUSY;
+	}
+out:
+	spin_unlock_irqrestore(hba->host->host_lock, flags);
+	return ret;
+}
+
+static int ufshcd_ffu_write_buffer_prepare(struct ufs_hba *hba)
+{
+	#define DOORBELL_CLR_TOUT_US		(1000 * 1000) /* 1 sec */
+	int ret = 0;
+	/*
+	 * make sure that there are no outstanding requests when
+	 * clock scaling is in progress
+	 */
+	ufshcd_scsi_block_requests(hba);
+	if (ufshcd_ffu_wait_for_doorbell_clr(hba, DOORBELL_CLR_TOUT_US)) {
+		ret = -EBUSY;
+		ufshcd_scsi_unblock_requests(hba);
+	}
+
+	return ret;
+}
+
+static void ufshcd_ffu_write_buffer_unprepare(struct ufs_hba *hba)
+{
+	ufshcd_scsi_unblock_requests(hba);
+}
+#endif
+
+
 /**
  * ufshcd_queuecommand - main entry point for SCSI requests
  * @cmd: command from SCSI Midlayer
@@ -2894,6 +2868,10 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 	struct ufs_hba *hba;
 	unsigned long flags;
 	int tag;
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
+	int retry = 3;
+#endif
 	int err = 0;
 	u32 line = 0;
 #if defined(CONFIG_UFSFEATURE) && defined(CONFIG_UFSHPB)
@@ -3071,6 +3049,20 @@ send_orig_cmd:
 	}
 	/* Make sure descriptors are ready before ringing the doorbell */
 	wmb();
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer
+   If it is ffu write buffer cmd, try to block the host from dispatching requests, and wait for
+   the doorbells of transfer requests and task management requests to be cleared. */
+	if ((UFS_FFU_DOWNLOAD_MODE == cmd->req.cmd[1]) && (WRITE_BUFFER == cmd->req.cmd[0])) {
+		while(retry--) {
+			pr_err("ufs ffu block host retry: %d\n", retry);
+			if (!ufshcd_ffu_write_buffer_prepare(hba)) {
+				hba->set_host_blocked = 1;
+				break;
+			}
+		}
+	}
+#endif
 
 #if defined(CONFIG_UFSFEATURE) && defined(CONFIG_UFSHPB)
 	if (!pre_req_err)
@@ -5717,62 +5709,31 @@ static void ufshcd_uic_cmd_compl(struct ufs_hba *hba, u32 intr_status)
 		complete(hba->uic_async_done);
 }
 
-#ifdef OPLUS_FEATURE_MIDAS
-//Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
-static void ufshcd_lrb_scsicmd_time_statistics(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
-{
-	if (lrbp->cmd->cmnd[0] == WRITE_10 || lrbp->cmd->cmnd[0] == WRITE_16) {
-		if (hba->pwr_info.gear_tx == 1) {
-			hba->ufs_transmission_status.gear_min_write_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_min_write_us +=
-				ktime_us_delta(lrbp->complete_time_stamp, lrbp->issue_time_stamp);
-		}
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer
+   Reset UFS device and link again, unblock the host from dispatching requests after ffu write buffer cmd finished
+*/
+static void ffu_write_buffer_finish_work_fun(struct work_struct *work) {
+	struct ufs_hba *hba = NULL;
+	struct scsi_cmnd cmd;
+	int ret = -1;
 
-		if (hba->pwr_info.gear_tx == 3 || hba->pwr_info.gear_tx == 4) {
-			hba->ufs_transmission_status.gear_max_write_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_max_write_us +=
-				ktime_us_delta(lrbp->complete_time_stamp, lrbp->issue_time_stamp);
-		}
-	} else if (lrbp->cmd->cmnd[0] == READ_10 || lrbp->cmd->cmnd[0] == READ_16) {
-		if (hba->pwr_info.gear_rx == 1) {
-			hba->ufs_transmission_status.gear_min_read_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_min_read_us +=
-				ktime_us_delta(lrbp->complete_time_stamp, lrbp->issue_time_stamp);
-		}
-
-		if (hba->pwr_info.gear_rx == 3 || hba->pwr_info.gear_rx == 4) {
-			hba->ufs_transmission_status.gear_max_read_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_max_read_us +=
-				ktime_us_delta(lrbp->complete_time_stamp, lrbp->issue_time_stamp);
-		}
+	hba = container_of(work, struct ufs_hba, ffu_write_buffer_finished_work);
+	cmd.device = hba->sdev_ufs_device;
+	ret = ufshcd_eh_host_reset_handler(&cmd);
+	if (SUCCESS == ret ) {
+		pr_err("ufs ffu reset succeed\n");
 	} else {
-		if (hba->pwr_info.gear_rx == 1) {
-			hba->ufs_transmission_status.gear_min_other_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_min_other_us += ktime_us_delta(lrbp->complete_time_stamp, lrbp->issue_time_stamp);
-		}
-
-		if (hba->pwr_info.gear_rx == 3 || hba->pwr_info.gear_rx == 4) {
-			hba->ufs_transmission_status.gear_max_other_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_max_other_us += ktime_us_delta(lrbp->complete_time_stamp, lrbp->issue_time_stamp);
-		}
+		pr_err("ufs ffu reset failed\n");
 	}
 
-	return;
-}
-
-static void ufshcd_lrb_devcmd_time_statistics(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
-{
-	if (hba->pwr_info.gear_tx == 1) {
-		hba->ufs_transmission_status.gear_min_dev_us +=
-			ktime_us_delta(lrbp->complete_time_stamp, lrbp->issue_time_stamp);
-	}
-
-	if (hba->pwr_info.gear_tx == 3 || hba->pwr_info.gear_tx == 4) {
-		hba->ufs_transmission_status.gear_max_dev_us +=
-			ktime_us_delta(lrbp->complete_time_stamp, lrbp->issue_time_stamp);
+	if (hba->set_host_blocked) {
+		hba->set_host_blocked = 0;
+		ufshcd_ffu_write_buffer_unprepare(hba);
 	}
 }
-#endif /*OPLUS_FEATURE_MIDAS*/
+#endif
+
 /**
  * __ufshcd_transfer_req_compl - handle SCSI and query command completion
  * @hba: per adapter instance
@@ -5783,6 +5744,11 @@ static int __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 {
 	struct ufshcd_lrb *lrbp;
 	struct scsi_cmnd *cmd;
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
+	struct scsi_request *rq = NULL;
+	unsigned char scmd[2] = {0};
+#endif
 	int result;
 	int index;
 	u32 ocs_err_status;
@@ -5795,6 +5761,12 @@ static int __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 		lrbp = &hba->lrb[index];
 		cmd = lrbp->cmd;
 		if (cmd) {
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
+			rq = &(cmd->req);
+			scmd[0] = rq->cmd[0];
+			scmd[1] = rq->cmd[1];
+#endif
 			/* MTK PATCH */
 			ufshcd_cond_add_cmd_trace(hba, index,
 				UFS_TRACE_COMPLETED);
@@ -5834,12 +5806,6 @@ static int __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 			}
 #endif
 			lrbp->complete_time_stamp = sched_clock();
-#ifdef OPLUS_FEATURE_MIDAS
-//Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
-			if (hba->ufs_transmission_status.transmission_status_enable) {
-				ufshcd_lrb_scsicmd_time_statistics(hba, lrbp);
-			}
-#endif
 			ufshcd_complete_lrbp_crypto(hba, cmd, lrbp);
 			/* Mark completed command as NULL in LRB */
 			lrbp->cmd = NULL;
@@ -5892,15 +5858,15 @@ static int __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 			cmd->scsi_done(cmd);
 			__ufshcd_release(hba);
 			ufs_mtk_biolog_scsi_done_end(index); /* MTK PATCH */
-		} else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
-			lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE) {
-#ifdef OPLUS_FEATURE_MIDAS
-			lrbp->complete_time_stamp = sched_clock();
-//Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
-			if (hba->ufs_transmission_status.transmission_status_enable) {
-				ufshcd_lrb_devcmd_time_statistics(hba, lrbp);
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
+			if ((UFS_FFU_DOWNLOAD_MODE == scmd[1]) && (WRITE_BUFFER == scmd[0]))
+			{
+				schedule_work(&hba->ffu_write_buffer_finished_work);
 			}
 #endif
+		} else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
+			lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE) {
 			if (hba->dev_cmd.complete) {
 				/* MTK PATCH */
 				ufshcd_cond_add_cmd_trace(hba, index,
@@ -9168,14 +9134,6 @@ out:
 static void ufshcd_vreg_set_lpm(struct ufs_hba *hba)
 {
 	/*
-	 * Some device need VCC off delay but host cannot provide this delay
-	 * VCC always on to save these kind of device.
-	 */
-	if ((hba->quirks & UFSHCD_QUIRK_UFS_VCC_ALWAYS_ON) &&
-	    (hba->dev_quirks & UFS_DEVICE_QUIRK_VCC_OFF_DELAY))
-		return;
-
-	/*
 	 * It seems some UFS devices may keep drawing more than sleep current
 	 * (atleast for 500us) from UFS rails (especially from VCCQ rail).
 	 * To avoid this situation, add 2ms delay before putting these UFS
@@ -9212,14 +9170,6 @@ static void ufshcd_vreg_set_lpm(struct ufs_hba *hba)
 static int ufshcd_vreg_set_hpm(struct ufs_hba *hba)
 {
 	int ret = 0;
-
-	/*
-	 * Some device need VCC off delay but host cannot provide this delay
-	 * VCC always on to save these kind of device.
-	 */
-	if ((hba->quirks & UFSHCD_QUIRK_UFS_VCC_ALWAYS_ON) &&
-	    (hba->dev_quirks & UFS_DEVICE_QUIRK_VCC_OFF_DELAY))
-		goto out;
 
 	if (ufshcd_is_ufs_dev_poweroff(hba) && ufshcd_is_link_off(hba) &&
 	    !hba->dev_info.is_lu_power_on_wp) {
@@ -9353,14 +9303,6 @@ static int ufshcd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 		}
 	}
 
-#if defined(CONFIG_UFSFEATURE) && defined(CONFIG_UFSTW)
-	if (ufstw_need_flush(&hba->ufsf)) {
-		ret = -EAGAIN;
-		pm_runtime_mark_last_busy(hba->dev);
-		goto enable_gating;
-	}
-#endif
-
 	/* MTK PATCH */
 	ret = ufshcd_check_hibern8_exit(hba);
 	if (ret)
@@ -9417,11 +9359,7 @@ static int ufshcd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 	ufshcd_set_reg_state(hba, UFS_REG_SUSPEND_SET_LPM); /* MTK PATCH */
 	ufshcd_vreg_set_lpm(hba);
 
-	/*
-	 * Some device need VCC off delay and host can provide this delay
-	 */
-	if (!(hba->quirks & UFSHCD_QUIRK_UFS_VCC_ALWAYS_ON) &&
-	    (hba->dev_quirks & UFS_DEVICE_QUIRK_VCC_OFF_DELAY))
+	if (hba->dev_quirks & UFS_DEVICE_QUIRK_VCC_OFF_DELAY)
 		mdelay(5);
 
 disable_clks:
@@ -10057,7 +9995,7 @@ void ufshcd_remove(struct ufs_hba *hba)
 	 * MTK PATCH: Unregister RPMB device
 	 * during shutdown and UFSHCD removal
 	 */
-	ufshcd_rpmb_remove(hba);	
+	ufshcd_rpmb_remove(hba);
 	ufshcd_remove_sysfs_nodes(hba);
 	scsi_remove_host(hba->host);
 	/* disable interrupts */
@@ -10131,7 +10069,11 @@ int ufshcd_alloc_host(struct device *dev, struct ufs_hba **hba_handle)
 	hba->dev = dev;
 	*hba_handle = hba;
 	hba->sg_entry_size = sizeof(struct ufshcd_sg_entry);
-
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
+	hba->set_host_blocked = 0;
+	INIT_WORK(&hba->ffu_write_buffer_finished_work, ffu_write_buffer_finish_work_fun);
+#endif
 	INIT_LIST_HEAD(&hba->clk_list_head);
 
 out_error:
@@ -10430,11 +10372,6 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	 * ufshcd_probe_hba().
 	 */
 	ufshcd_set_ufs_dev_active(hba);
-
-#ifdef OPLUS_FEATURE_MIDAS
-//Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
-	ufshcd_transmission_status_init_sysfs(hba);
-#endif
 
 #if defined(CONFIG_UFSFEATURE)
 	ufsf_hpb_set_init_state(&hba->ufsf);

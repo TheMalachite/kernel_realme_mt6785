@@ -669,12 +669,6 @@ struct ISP_INFO_STRUCT {
 
 static struct ISP_INFO_STRUCT IspInfo;
 static bool    SuspnedRecord[ISP_DEV_NODE_NUM] = {0};
-#ifdef OPLUS_FEATURE_PERFORMANCE
-//Drop frame check
-//xiaowei.xu@cam.drv, 20210514, add for fix isp drop request
-static unsigned int g_virtual_cq_cnt[ISP_IRQ_TYPE_INT_CAM_C_ST -
-                                         ISP_IRQ_TYPE_INT_CAM_A_ST + 1] = {0};
-#endif
 
 enum eLOG_TYPE {
 	/* currently, only used at ipl_buf_ctrl.
@@ -4444,29 +4438,6 @@ static long ISP_ioctl(struct file *pFile,
 			}
 		}
 		break;
-        #ifdef OPLUS_FEATURE_PERFORMANCE
-        //xiaowei.xu@cam.drv, 20210514, add for fix isp drop request
-	case ISP_SET_VIR_CQCNT: {
-		unsigned int _cq_cnt[2] = {0};
-
-		if (copy_from_user(&_cq_cnt, (void *)Param,
-			sizeof(unsigned int) * 2) == 0) {
-			LOG_DBG("hw_module:%d VirCQ count from user: %d\n",
-				_cq_cnt[0], _cq_cnt[1]);
-
-			if (_cq_cnt[0] <= (ISP_IRQ_TYPE_INT_CAM_C_ST -
-				ISP_IRQ_TYPE_INT_CAM_A_ST))
-				g_virtual_cq_cnt[_cq_cnt[0]] = _cq_cnt[1];
-			else
-				LOG_NOTICE("invalid HW module(%d)\n",
-					_cq_cnt[0]);
-		} else {
-			LOG_NOTICE(
-				"Virtual CQ count copy_from_user failed\n");
-			Ret = -EFAULT;
-		}
-	} break;
-        #endif
 	default:
 	{
 		LOG_NOTICE("Unknown Cmd(%d)\n", Cmd);
@@ -4816,10 +4787,6 @@ static long ISP_ioctl_compat(struct file *filp,
 	case ISP_GET_INT_ERR:
 	case ISP_SET_SEC_DAPC_REG:
 	case ISP_NOTE_CQTHR0_BASE:
-        #ifdef OPLUS_FEATURE_PERFORMANCE
-        //xiaowei.xu@cam.drv, 20210514, add for fix isp drop request
-	case ISP_SET_VIR_CQCNT:
-        #endif
 		return filp->f_op->unlocked_ioctl(filp, cmd, arg);
 	default:
 		return -ENOIOCTLCMD;
@@ -9417,19 +9384,6 @@ irqreturn_t ISP_Irq_CAM(enum ISP_IRQ_TYPE_ENUM irq_module)
 				"CAM%c Lost p1 done_%d (0x%x): ",
 				'A'+cardinalNum, sof_count[module], cur_v_cnt);
 		}
-                #ifdef OPLUS_FEATURE_PERFORMANCE
-                //xiaowei.xu@cam.drv, 20210514, add for fix isp drop request
-		if ((ISP_RD32(CAM_REG_CTL_SPARE2(reg_module)) % 0x100)
-			!= g_virtual_cq_cnt[module]) {
-			IrqStatus &= ~SOF_INT_ST;
-			IRQ_LOG_KEEPER(module, m_CurrentPPB, _LOG_INF,
-				"CAM%c PHY cqcnt:%d != VIR cqcnt:%d, IrqStatus:0x%x\n",
-				'A' + cardinalNum,
-				ISP_RD32(CAM_REG_CTL_SPARE2(reg_module)) % 0x100,
-				g_virtual_cq_cnt[module],
-				IrqStatus);
-		}
-                #endif
 		/* During SOF, re-enable that err/warn irq had been marked and
 		 * reset IrqCntInfo
 		 */

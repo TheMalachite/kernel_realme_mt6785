@@ -1378,11 +1378,6 @@ int mtk_dprec_mmp_dump_ovl_layer(struct mtk_plane_state *plane_state)
 
 static struct mtk_wdma_capture_info *wdma_capt_info_l;
 static struct capture_info *user_buffer_l;
-#ifdef OPLUS_FEATURE_MIDAS
-		DEFINE_MUTEX(g_dispcap_buffer_lock);
-		typedef void (*fp_buffer_complete_notify)(void *user_buffer);
-		fp_buffer_complete_notify buffer_complete_notify = 0;
-#endif
 
 bool setCaptureRect(int left, int top, int width, int height)
 {
@@ -1424,9 +1419,6 @@ bool setCaptureRect(int left, int top, int width, int height)
 	return true;
 
 }
-#ifdef OPLUS_FEATURE_MIDAS
-	EXPORT_SYMBOL(setCaptureRect);
-#endif
 
 bool setCaptureInterval(int interval)
 {
@@ -1457,39 +1449,15 @@ bool setCaptureInterval(int interval)
 	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 	return true;
 }
-#ifdef OPLUS_FEATURE_MIDAS
-	EXPORT_SYMBOL(setCaptureInterval);
-#endif
 
 bool setUserBuffer(u8 *user_buffer)
 {
 	if (wdma_capt_info_l) {
-#ifdef OPLUS_FEATURE_MIDAS
-		mutex_lock(&g_dispcap_buffer_lock);
-#endif
 		wdma_capt_info_l->user_buffer = user_buffer;
-#ifdef OPLUS_FEATURE_MIDAS
-		mutex_unlock(&g_dispcap_buffer_lock);
-
-		drm_trigger_repaint(DRM_REPAINT_FOR_IDLE, drm_dev);
-#endif
 		DDPMSG("[capture] user set buffer:0x%x", user_buffer);
 	}
 	return true;
 }
-#ifdef OPLUS_FEATURE_MIDAS
-	EXPORT_SYMBOL(setUserBuffer);
-#endif
-
-#ifdef OPLUS_FEATURE_MIDAS
-bool setBufferCompleteNotifyCallback(fp_buffer_complete_notify cb) {
-		mutex_lock(&g_dispcap_buffer_lock);
-		buffer_complete_notify = cb;
-		mutex_unlock(&g_dispcap_buffer_lock);
-		return true;
-}
-EXPORT_SYMBOL(setBufferCompleteNotifyCallback);
-#endif
 
 void mtk_crtc_set_wdma_capt_inf(struct drm_crtc *crtc)
 {
@@ -1620,12 +1588,8 @@ bool enableCapture(int en)
 		return false;
 	}
 	if (user_buffer_l == 0) {
-#ifdef OPLUS_FEATURE_MIDAS
-		mtk_crtc->user_buffer = 0;
-#else
 		createUserBuffer();
 		mtk_crtc->user_buffer = user_buffer_l;
-#endif
 	}
 	private = crtc->dev->dev_private;
 
@@ -1645,9 +1609,6 @@ bool enableCapture(int en)
 	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 	return true;
 }
-#ifdef OPLUS_FEATURE_MIDAS
-	EXPORT_SYMBOL(enableCapture);
-#endif
 
 static void process_dbg_opt(const char *opt)
 {

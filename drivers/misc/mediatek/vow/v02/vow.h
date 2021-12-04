@@ -25,12 +25,7 @@
 #define DEBUG_VOWDRV 1
 
 #if DEBUG_VOWDRV
-#ifdef OPLUS_FEATURE_VOICE_WAKEUP_LOG_ENABLE
-#tianli1@MULTIMEDIA.AUDIOSERVER.BASE, 2020/09/10, Add for mtk&Aispeech voice wakeup
-#define VOWDRV_DEBUG(format, args...) pr_err(format, ##args)
-#else
 #define VOWDRV_DEBUG(format, args...) pr_debug(format, ##args)
-#endif
 #else
 #define VOWDRV_DEBUG(format, args...)
 #endif

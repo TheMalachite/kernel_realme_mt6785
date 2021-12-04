@@ -1878,10 +1878,6 @@ static int sec_buf_ion_alloc(int buf_size)
 	if (IS_ERR_OR_NULL(sec_ion_handle)) {
 		DISPERR("Fatal Error, ion_alloc for size %d failed\n",
 			buf_size);
-//#ifdef OPLUS_FEATURE_SECURITY_COMMON
-//#Fangjie.lei@BSP.Security.Basic, 2020/10/13, Add for widevine alloc fail free crash issue
-		//ion_free(ion_client, sec_ion_handle);
-//#endif /* OPLUS_FEATURE_SECURITY_COMMON */
 		ion_client_destroy(ion_client);
 		return -1;
 	}

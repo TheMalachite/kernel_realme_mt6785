@@ -78,10 +78,6 @@
 #include "binder_internal.h"
 #include "binder_trace.h"
 
-#ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
-#include <linux/uifirst/uifirst_sched_binder.h>
-#endif /* OPLUS_FEATURE_UIFIRST */
 #ifdef OPLUS_FEATURE_HANS_FREEZE
 // Kun.Zhou@ANDROID.RESCONTROL, 2019/09/23, add for hans freeze manager
 #include <linux/hans.h>
@@ -563,10 +559,6 @@ struct binder_proc {
 	struct hlist_node deferred_work_node;
 	int deferred_work;
 	bool is_dead;
-#ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/06/15, Add for UIFirst
-	int proc_type;
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 	struct list_head todo;
 	struct binder_stats stats;
@@ -1833,18 +1825,10 @@ static void binder_restore_priority(struct task_struct *task,
 	binder_do_set_priority(task, desired, /* verify = */ false);
 }
 
-#ifdef OPLUS_FEATURE_UIFIRST
-//Kezhi.Zhu@TECH.Kernel.Sched, 2020/06/29, Add for ui first
-static void binder_transaction_priority(struct binder_thread *thread, struct task_struct *task,
-					struct binder_transaction *t,
-					struct binder_priority node_prio,
-					bool inherit_rt)
-#else
 static void binder_transaction_priority(struct task_struct *task,
 					struct binder_transaction *t,
 					struct binder_priority node_prio,
 					bool inherit_rt)
-#endif /* OPLUS_FEATURE_UIFIRST */
 {
 	struct binder_priority desired_prio = t->priority;
 
@@ -1855,14 +1839,6 @@ static void binder_transaction_priority(struct task_struct *task,
 	t->saved_priority.sched_policy = task->policy;
 	t->saved_priority.prio = task->normal_prio;
 
-#ifdef OPLUS_FEATURE_UIFIRST
-//Kezhi.Zhu@TECH.Kernel.Sched, 2020/06/29, Add for ui first
-	//NOTE: if task is main thread, and doesn't join pool as a binder thread,
-	//DON'T actually change priority in binder transaction.
-	if ((task->tgid == task->pid) && !(thread->looper & BINDER_LOOPER_STATE_ENTERED)) {
-		return;
-	}
-#endif /* OPLUS_FEATURE_UIFIRST */
 	if (!inherit_rt && is_rt_policy(desired_prio.sched_policy)) {
 		desired_prio.prio = NICE_TO_PRIO(0);
 		desired_prio.sched_policy = SCHED_NORMAL;
@@ -3480,14 +3456,6 @@ static int binder_fixup_parent(struct binder_transaction *t,
 	return 0;
 }
 
-#ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/06/15, Add for UIFirst
-static inline bool is_binder_proc_sf(struct binder_proc *proc)
-{
-	return proc && proc->tsk && strstr(proc->tsk->comm, "surfaceflinger")
-		&& (task_uid(proc->tsk).val == 1000);
-}
-#endif /* OPLUS_FEATURE_UIFIRST */
 /**
  * binder_proc_transaction() - sends a transaction to a process and wakes it up
  * @t:		transaction to send
@@ -3540,27 +3508,14 @@ static bool binder_proc_transaction(struct binder_transaction *t,
 		thread = binder_select_thread_ilocked(proc);
 
 	if (thread) {
-#ifdef OPLUS_FEATURE_UIFIRST
-//Kezhi.Zhu@TECH.Kernel.Sched, 2020/06/29, Add for ui first
-		binder_transaction_priority(thread, thread->task, t, node_prio,
-					    node->inherit_rt);
-#else
 		binder_transaction_priority(thread->task, t, node_prio,
 					    node->inherit_rt);
-#endif /* OPLUS_FEATURE_UIFIRST */
 		binder_enqueue_thread_work_ilocked(thread, &t->work);
 #ifdef CONFIG_MTK_TASK_TURBO
 		if (binder_start_turbo_inherit(t->from ?
 				t->from->task : NULL, thread->task))
 			t->inherit_task = thread->task;
 #endif
-#ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
-		if (sysctl_uifirst_enabled) {
-			if (!oneway || proc->proc_type)
-				binder_set_inherit_ux(thread->task, current);
-		}
-#endif /* OPLUS_FEATURE_UIFIRST */
 	} else if (!pending_async) {
 		binder_enqueue_work_ilocked(&t->work, &proc->todo);
 	} else {
@@ -4307,12 +4262,6 @@ static void binder_transaction(struct binder_proc *proc,
 			in_reply_to->inherit_task = NULL;
 		}
 #endif
-#ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
-		if (sysctl_uifirst_enabled && !proc->proc_type) {
-			binder_unset_inherit_ux(thread->task);
-		}
-#endif /* OPLUS_FEATURE_UIFIRST */
 		binder_restore_priority(current, in_reply_to->saved_priority);
 		binder_free_transaction(in_reply_to);
 	} else if (!(t->flags & TF_ONE_WAY)) {
@@ -4971,36 +4920,11 @@ static int binder_wait_for_work(struct binder_thread *thread,
 		prepare_to_wait(&thread->wait, &wait, TASK_INTERRUPTIBLE);
 		if (binder_has_work_ilocked(thread, do_proc_work))
 			break;
-#ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/06/15, Add for UIFirst
-		if (do_proc_work) {
-			list_add(&thread->waiting_thread_node,
-				 &proc->waiting_threads);
-
-			if (sysctl_uifirst_enabled) {
-				binder_unset_inherit_ux(thread->task);
-			}
-		}
-#else /* OPLUS_FEATURE_UIFIRST */
 		if (do_proc_work)
 			list_add(&thread->waiting_thread_node,
 				 &proc->waiting_threads);
-#endif /* OPLUS_FEATURE_UIFIRST */
 		binder_inner_proc_unlock(proc);
-#ifdef OPLUS_FEATURE_HEALTHINFO
-// Liujie.Xie@TECH.Kernel.Sched, 2019/08/29, add for jank monitor
-#ifdef CONFIG_OPPO_JANK_INFO
-		if (!do_proc_work)
-			current->in_binder = 1;
-#endif
-#endif /* OPLUS_FEATURE_HEALTHINFO */
 		schedule();
-#ifdef OPLUS_FEATURE_HEALTHINFO
-// Liujie.Xie@TECH.Kernel.Sched, 2019/08/29, add for jank monitor
-#ifdef CONFIG_OPPO_JANK_INFO
-		current->in_binder = 0;
-#endif
-#endif /* OPLUS_FEATURE_HEALTHINFO */
 		binder_inner_proc_lock(proc);
 		list_del_init(&thread->waiting_thread_node);
 		if (signal_pending(current)) {
@@ -5280,14 +5204,8 @@ retry:
 			trd->cookie =  target_node->cookie;
 			node_prio.sched_policy = target_node->sched_policy;
 			node_prio.prio = target_node->min_priority;
-#ifdef OPLUS_FEATURE_UIFIRST
-//Kezhi.Zhu@TECH.Kernel.Sched, 2020/06/29, Add for ui first
-			binder_transaction_priority(thread, current, t, node_prio,
-						    target_node->inherit_rt);
-#else
 			binder_transaction_priority(current, t, node_prio,
 						    target_node->inherit_rt);
-#endif /* OPLUS_FEATURE_UIFIRST */
 			cmd = BR_TRANSACTION;
 		} else {
 			trd->target.ptr = 0;
@@ -5311,12 +5229,6 @@ retry:
 							thread->task))
 				t->inherit_task = thread->task;
 #endif
-#ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
-			if (sysctl_uifirst_enabled) {
-				binder_set_inherit_ux(thread->task, t_from->task);
-			}
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 		} else {
 			trd->sender_pid = 0;
@@ -6091,10 +6003,6 @@ static int binder_open(struct inode *nodp, struct file *filp)
 	spin_lock_init(&proc->outer_lock);
 	get_task_struct(current->group_leader);
 	proc->tsk = current->group_leader;
-#ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/06/15, Add for UIFirst
-	proc->proc_type = is_binder_proc_sf(proc) ? 1 : 0;
-#endif /* OPLUS_FEATURE_UIFIRST */
 	mutex_init(&proc->files_lock);
 	INIT_LIST_HEAD(&proc->todo);
 	if (binder_supported_policy(current->policy)) {

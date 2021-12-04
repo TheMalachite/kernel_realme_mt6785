@@ -120,6 +120,11 @@ config EXT4_ASYNC_DISCARD_SUPPORT
 	depends on EXT4_FS
 #endif
 
+config EXT4_FSYNC
+        bool "Ext4 fsync Support"
+        default n
+        depends on EXT4_FS
+
 config EXT4_DEBUG
 	bool "EXT4 debugging support"
 	depends on EXT4_FS

@@ -490,19 +490,6 @@ void oppo_rtc_mark_factory(void)
 	spin_unlock_irqrestore(&rtc_lock, flags);
 }
 
-//xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest
-#ifdef OPLUS_FEATURE_AGINGTEST
-void oppo_rtc_mark_agingtest(void)
-{
-	unsigned long flags;
-
-	rtc_xinfo("rtc_mark_agingtest\n");
-	spin_lock_irqsave(&rtc_lock, flags);
-	hal_rtc_set_spare_register(RTC_AGINGTEST_BOOT, 0x01);
-	spin_unlock_irqrestore(&rtc_lock, flags);
-}
-#endif /*OPLUS_FEATURE_AGINGTEST */
-
 /*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
 void oppo_rtc_mark_safe(void)
 {

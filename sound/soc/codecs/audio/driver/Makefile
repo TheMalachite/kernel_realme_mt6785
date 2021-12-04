@@ -14,6 +14,3 @@
 # Jun.Liang@MULTIMEDIA.AUDIODRIVER.MACHINE, 2020/08/20, Add for oplus extend audio
 snd-audio-extend-objs := audio_extend_drv.o
 obj-y += snd-audio-extend.o
-# Zhao.Pan@MULTIMEDIA.AUDIODRIVER.MACHINE, 2020/10/10, add for audiohal feedback
-snd-hal-feedback-objs := hal_feedback.o
-obj-$(CONFIG_OPLUS_FEATURE_MM_FEEDBACK) += snd-hal-feedback.o

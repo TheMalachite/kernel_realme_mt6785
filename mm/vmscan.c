@@ -56,22 +56,10 @@
 #include <linux/swapops.h>
 #include <linux/balloon_compaction.h>
 
-#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
-/* Kui.Zhang@PSW.TEC.Kernel.Performance, 2019/02/27
- * collect interrupt doing time during process reclaim, only effect in age test
- */
-#include <linux/process_mm_reclaim.h>
-#endif
-
 #include "internal.h"
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/vmscan.h>
-
-#if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_FG_TASK_UID)
-/*Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-04-28, fix direct reclaim slow issue*/
-#include <linux/oppo_healthinfo/oppo_fg.h>
-#endif /*OPLUS_FEATURE_ZRAM_OPT*/
 
 struct scan_control {
 	/* How many pages shrink_list() should reclaim */
@@ -135,13 +123,6 @@ struct scan_control {
 	 * on memory until last task zap it.
 	 */
 	struct vm_area_struct *target_vma;
-
-#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
-	/* robin.ren@PSW.BSP.Kernel.Performance, 2019-03-13,
-	 * use mm_walk to regonize the behaviour of process reclaim.
-	 */
-	struct mm_walk *walk;
-#endif
 };
 
 #ifdef ARCH_HAS_PREFETCH
@@ -176,13 +157,7 @@ struct scan_control {
  * From 0 .. 100.  Higher means more swappy.
  */
 int vm_swappiness = 60;
-#if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
-/*yixue.ge@psw.bsp.kernel 20170720 add for add direct_vm_swappiness*/
-/*
- * Direct reclaim swappiness, exptct 0 - 60. Higher means more swappy and slower.
- */
-int direct_vm_swappiness = 60;
-#endif /*OPLUS_FEATURE_ZRAM_OPT*/
+
 /*
  * The total number of pages which are beyond the high watermark within all
  * zones.
@@ -1027,12 +1002,6 @@ static unsigned long shrink_page_list(struct list_head *page_list,
 		enum page_references references = PAGEREF_RECLAIM;
 		bool dirty, writeback;
 
-#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
-		/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-12-25, check whether the
-		 * reclaim process should cancel*/
-		if (sc->walk && is_reclaim_should_cancel(sc->walk))
-			break;
-#endif
 		cond_resched();
 
 		page = lru_to_page(page_list);
@@ -1447,69 +1416,9 @@ unsigned long reclaim_clean_pages_from_list(struct zone *zone,
 	return ret;
 }
 
-#if defined(CONFIG_NANDSWAP)
-unsigned long nswap_reclaim_page_list(struct list_head *page_list,
-					struct vm_area_struct *vma, bool scan)
-{
-	unsigned long nr_isolated[2] = {0, };
-	struct pglist_data *pgdat = NULL;
-	unsigned long nr_reclaimed;
-	unsigned long nr_scan = 0;
-	struct page *page;
-	struct scan_control sc = {
-		.gfp_mask = GFP_KERNEL,
-		.priority = DEF_PRIORITY,
-		.may_writepage = 1,
-		.may_unmap = 1,
-		.may_swap = 1,
-		.target_vma = vma,
-	};
-
-	if (list_empty(page_list))
-		return 0;
-
-	list_for_each_entry(page, page_list, lru) {
-		ClearPageActive(page);
-		if (pgdat == NULL)
-			pgdat = page_pgdat(page);
-		/* XXX: It could be multiple node in other config */
-		WARN_ON_ONCE(pgdat != page_pgdat(page));
-		if (!page_is_file_cache(page))
-			nr_isolated[0]++;
-		else
-			nr_isolated[1]++;
-	}
-
-	mod_node_page_state(pgdat, NR_ISOLATED_ANON, nr_isolated[0]);
-	mod_node_page_state(pgdat, NR_ISOLATED_FILE, nr_isolated[1]);
-
-	nr_reclaimed = shrink_page_list(page_list, NULL, &sc,
-			TTU_IGNORE_ACCESS, NULL, true);
-
-	while (!list_empty(page_list)) {
-		page = lru_to_page(page_list);
-		if (PageSwapCache(page) && !PageDirty(page))
-			nr_scan++;
-		list_del(&page->lru);
-		putback_lru_page(page);
-	}
-
-	mod_node_page_state(pgdat, NR_ISOLATED_ANON, -nr_isolated[0]);
-	mod_node_page_state(pgdat, NR_ISOLATED_FILE, -nr_isolated[1]);
-
-	return scan ? nr_scan : nr_reclaimed;
-}
-#endif
-
 #ifdef CONFIG_PROCESS_RECLAIM
-#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
-/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-12-25, record the scaned task*/
-unsigned long reclaim_pages_from_list(struct list_head *page_list,
-			struct vm_area_struct *vma, struct mm_walk *walk)
-#else
 unsigned long reclaim_pages_from_list(struct list_head *page_list,
 					struct vm_area_struct *vma)
-#endif
 {
 	unsigned long nr_isolated[2] = {0, };
 	struct pglist_data *pgdat = NULL;
@@ -1520,10 +1429,6 @@ unsigned long reclaim_pages_from_list(struct list_head *page_list,
 		.may_unmap = 1,
 		.may_swap = 1,
 		.target_vma = vma,
-#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
-		/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-12-25, record the scaned task*/
-		.walk = walk,
-#endif
 	};
 
 	unsigned long nr_reclaimed;
@@ -1793,13 +1698,7 @@ int isolate_lru_page(struct page *page)
 	int ret = -EBUSY;
 
 	VM_BUG_ON_PAGE(!page_count(page), page);
-#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
-	/* Kui.Zhang@PSW.TEC.Kernel.Performance, 2019-01-08, Because process reclaim is doing page by
-	 * page, so there many compound pages are relcaimed, so too many warning msg on this case. */
-	WARN_RATELIMIT((!current_is_reclaimer() && PageTail(page)), "trying to isolate tail page");
-#else
 	WARN_RATELIMIT(PageTail(page), "trying to isolate tail page");
-#endif
 
 	if (PageLRU(page)) {
 		struct zone *zone = page_zone(page);
@@ -1919,15 +1818,6 @@ putback_inactive_pages(struct lruvec *lruvec, struct list_head *page_list)
  */
 static int current_may_throttle(void)
 {
-#if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
-/*Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-04-28, fix direct reclaim slow issue*/
-	if ((current->signal->oom_score_adj < 0)
-#ifdef CONFIG_FG_TASK_UID
-		|| is_fg(current_uid().val)
-#endif
-	   )
-		return 0;
-#endif /*OPLUS_FEATURE_ZRAM_OPT*/
 	return !(current->flags & PF_LESS_THROTTLE) ||
 		current->backing_dev_info == NULL ||
 		bdi_write_congested(current->backing_dev_info);
@@ -2323,14 +2213,8 @@ static bool inactive_list_is_low(struct lruvec *lruvec, bool file,
 		inactive_ratio = 0;
 	} else {
 		gb = (inactive + active) >> (30 - PAGE_SHIFT);
-#if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
-/*Huacai.Zhou@Tech.Kernel.MM, 2020-03-25, keep more file pages*/
-		if (file && gb)
-			inactive_ratio = min(2UL, int_sqrt(10 * gb));
-#else
 		if (gb)
 			inactive_ratio = int_sqrt(10 * gb);
-#endif /*OPLUS_FEATURE_ZRAM_OPT*/
 		else
 			inactive_ratio = 1;
 	}
@@ -2435,15 +2319,8 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	unsigned long ap, fp;
 	enum lru_list lru;
 
-#if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
-/*yixue.ge@psw.bsp.kernel 20170720 add for add direct_vm_swappiness*/
-	if (!current_is_kswapd())
-		swappiness = direct_vm_swappiness;
-	if (!sc->may_swap || (mem_cgroup_get_nr_swap_pages(memcg) <= total_swap_pages>>6)) {
-#else
 	/* If we have no swap space, do not bother scanning anon pages. */
 	if (!sc->may_swap || mem_cgroup_get_nr_swap_pages(memcg) <= 0) {
-#endif /*OPLUS_FEATURE_ZRAM_OPT*/
 		scan_balance = SCAN_FILE;
 		goto out;
 	}
@@ -3850,28 +3727,6 @@ static void kswapd_try_to_sleep(pg_data_t *pgdat, int alloc_order, int reclaim_o
 	finish_wait(&pgdat->kswapd_wait, &wait);
 }
 
-#ifdef OPLUS_FEATURE_PERFORMANCE
-extern long sched_setaffinity(pid_t pid, const struct cpumask *in_mask);
-static inline int set_thread_affinity_littlecore(struct task_struct *tsk)
-{
-	int ret;
-	struct cpumask mask;
-
-	cpumask_clear(&mask);
-
-	cpumask_set_cpu(0, &mask);
-	cpumask_set_cpu(1, &mask);
-	cpumask_set_cpu(2, &mask);
-	cpumask_set_cpu(3, &mask);
-	cpumask_set_cpu(4, &mask);
-	cpumask_set_cpu(5, &mask);
-
-	ret = sched_setaffinity(tsk->pid, &mask);
-
-	return ret;
-}
-#endif
-
 /*
  * The background pageout daemon, started as a kernel thread
  * from the init process.
@@ -3900,10 +3755,6 @@ static int kswapd(void *p)
 	if (!cpumask_empty(cpumask))
 		set_cpus_allowed_ptr(tsk, cpumask);
 	current->reclaim_state = &reclaim_state;
-
-#ifdef OPLUS_FEATURE_PERFORMANCE
-	set_thread_affinity_littlecore(current);
-#endif
 
 	/*
 	 * Tell the memory management that we're a "memory allocator",

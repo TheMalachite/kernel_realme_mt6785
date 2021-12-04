@@ -235,10 +235,8 @@ ifneq ($(filter $(no-dot-config-targets), $(MAKECMDGOALS)),)
 	endif
 endif
 
-#ifdef OPLUS_ARCH_INJECT
 #Sunliang@ANDROID.BUILD, 2020/04/08, export global native features to kernel
 -include OplusKernelEnvConfig.mk
-#endif /* OPLUS_ARCH_INJECT */
 
 ifeq ($(KBUILD_EXTMOD),)
         ifneq ($(filter config %config,$(MAKECMDGOALS)),)
@@ -451,27 +449,6 @@ CFLAGS_KERNEL +=   -DVENDOR_EDIT
 CFLAGS_MODULE +=   -DVENDOR_EDIT
 #endif /* VENDOR_EDIT */
 
-#ifdef OPLUS_FEATURE_MEMLEAK_DETECT
-#Kui.Zhang@Bsp.Kernel.MM, 2020/05/19, Add for memleak test
-ifeq ($(AGING_DEBUG_MASK),1)
-# enable memleak detect daemon
-OPPO_MEMLEAK_DETECT := thread
-endif
-
-ifeq ($(TARGET_MEMLEAK_DETECT_TEST),0)
-# disable memleak detect daemon
-OPPO_MEMLEAK_DETECT := none
-else ifeq ($(TARGET_MEMLEAK_DETECT_TEST),1)
-# enable memleak detect daemon
-OPPO_MEMLEAK_DETECT := thread
-else ifeq ($(TARGET_MEMLEAK_DETECT_TEST),2)
-# enable memleak detect daemon and kasan
-OPPO_MEMLEAK_DETECT := all
-endif
-
-export OPPO_MEMLEAK_DETECT
-#endif
-
 export ARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE AS LD CC
 export CPP AR NM STRIP OBJCOPY OBJDUMP HOSTLDFLAGS HOST_LOADLIBES
 export MAKE AWK GENKSYMS INSTALLKERNEL PERL PYTHON UTS_MACHINE
@@ -619,10 +596,8 @@ CFLAGS_KERNEL +=   -DVENDOR_EDIT
 CFLAGS_MODULE +=   -DVENDOR_EDIT
 #endif /* VENDOR_EDIT */
 
-#ifdef OPLUS_ARCH_INJECT
 #Sunliang@ANDROID.BUILD, 2020/04/08, export global native features to kernel
 -include OplusKernelEnvConfig.mk
-#endif /* OPLUS_ARCH_INJECT */
 
 
 ifeq ($(KBUILD_EXTMOD),)
@@ -1467,12 +1442,6 @@ modules: $(vmlinux-dirs) $(if $(KBUILD_BUILTIN),vmlinux) modules.builtin
 	$(Q)$(AWK) '!x[$$0]++' $(vmlinux-dirs:%=$(objtree)/%/modules.order) > $(objtree)/modules.order
 	@$(kecho) '  Building modules, stage 2.';
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
-#ifdef OPLUS_FEATURE_SECURITY_COMMON
-#Meilin.Zhou@BSP.Security.Basic, ModuleSig, Fix the MTK issue,some ko is not signed. 2020-12-21
-ifeq ($(CONFIG_MODULE_SIG), y)
-	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modsign
-endif
-#endif /*OPLUS_FEATURE_SECURITY_COMMON*/
 
 modules.builtin: $(vmlinux-dirs:%=%/modules.builtin)
 	$(Q)$(AWK) '!x[$$0]++' $^ > $(objtree)/modules.builtin

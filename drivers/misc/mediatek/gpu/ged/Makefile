@@ -489,11 +489,6 @@ ged-y += \
     src/ged_debugFS.o
 endif
 
-ifeq ($(CONFIG_OPLUS_FEATURE_MIDAS),y)
-ged-y += \
-    src/ged_oppo_ex.o
-endif
-
 ged-y += \
     src/ged.o \
     src/ged_base.o \

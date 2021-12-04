@@ -207,11 +207,6 @@ VOID connectLogActiveBSSRSSI(IN P_BSS_DESC_T prSPBssDesc)
                                 }
                 }
         }
-
-        if (prSmartBW->needSaveLog) {
-                DBGLOG(AIS, TRACE, "%s\n", buf);
-                htKalWCNKeyLogWrite(buf, TYPE_LOG_SCAN_RSSI_RATIO);
-        }
 }
 
 /* log Bss band ratio when connect */
@@ -253,36 +248,6 @@ VOID connectLogSummary(IN P_BSS_DESC_T prBssDesc, uint8_t ucBssIndex)
                                 prBssDesc->aucSSID, prBssDesc->ucChannelNum,
                                 prSmartBW->u4ConnectTotal5GVHT160Time * 100 / prSmartBW->u4ConnectTotalTime);
                 }
-        }
-
-        if (prSmartBW->needSaveLog) {
-                snprintf(buf, sizeof(buf),
-                        "[CNN]: CNN: %u, CNN2G: %u, CNN2G_40M: %u, CCNN2G_Ratio: %u/100, CNN2G_40M_Ratio: %u/100, CNN5G_160M_MRatio: %u/100, ESS: %u",
-                        prSmartBW->u4ConnectTotalTime,
-                        prSmartBW->u4ConnectTotal2GTime,
-                        prSmartBW->u4ConnectTotal2GHT40Time,
-                        prSmartBW->u4ConnectTotal2GTime * 100 / prSmartBW->u4ConnectTotalTime,
-                        prSmartBW->u4ConnectTotal2GHT40Time * 100 / prSmartBW->u4ConnectTotalTime,
-                        prSmartBW->u4ConnectTotal5GVHT160Time * 100 / prSmartBW->u4ConnectTotalTime,
-                        prAdapter->rWifiVar.rAisSpecificBssInfo[ucBssIndex].rCurEssLink.u4NumElem);
-                DBGLOG(AIS, TRACE, "%s\n", buf);
-                htKalWCNKeyLogWrite(buf, TYPE_LOG_CONNECT_BAND_RATIO);
-
-                /* @2019/7/30, record the latest scan WM busy status in DCS */
-                buf[0] = '\0';
-                WMBS_1Time = &(prWMBS->arSR2G1TimeWMBS[prWMBS->u4LatestIndex]);
-                kalGetChannelList(prAdapter->prGlueInfo, BAND_2G4, 20, &ucNumOfChannel, aucChannelList);
-                snprintf(buf, sizeof(buf),"[SMART_BW]: [WMBusyStatus]: 2GTotalScanCh: %d ", WMBS_1Time->u4ScanResult2GTotalCh);
-                for (i = 0; i < ucNumOfChannel; i++) {
-                        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-                                "Ch:%d, %ldms, %ldms, %d ",
-                                WMBS_1Time->arSR2G1CHWMBS[i].Ch,
-                                WMBS_1Time->arSR2G1CHWMBS[i].u4ScanResult2GIdleSlotTime,
-                                WMBS_1Time->arSR2G1CHWMBS[i].u4ScanResult2GScanDuration,
-                                WMBS_1Time->arSR2G1CHWMBS[i].cHIdleSlotRatio);
-                }
-                DBGLOG(AIS, TRACE, "%s\n", buf);
-                htKalWCNKeyLogWrite(buf, TYPE_LOG_CONNECT_BAND_RATIO);
         }
 }
 
@@ -391,35 +356,6 @@ VOID scanLogAllBufferedScanResult(void)
         prSmartBW->u4ScanResultActive2G40MNum = u4ScanResultActive2G40MNum;
         prSmartBW->u4ScanResultActive5GNum = u4ScanResultActive5GNum;
         prSmartBW->u4ScanResultActive5G160MNum = u4ScanResultActive5G160MNum;
-
-        /* snprintf is better than memcpy, strncpy etc.., since snprintf will make sure the dest has '\0' in the end */
-        /* snprintf behavior is different in GCC & VC, gcc the size contains the '\0', so it's more safe */
-#if DBG
-        if (prSmartBW->needSaveLog) {
-                snprintf(buf, sizeof(buf),
-                        "[SCN]: %u query %u store buffered Bss, SCN2G: %u, SCN2G_40M: %u, SCN2G_40M_Ratio: %u/100, SCN5G: %u, SCN5G_160M: %u, SCN5G_160M_Ratio: %u/100",
-                        prSmartBW->u4ScanResultTotalNum,
-                        prAdapter->rWifiVar.rScanInfo.rBSSDescList.u4NumElem,
-                        prSmartBW->u4ScanResult2GNum, prSmartBW->u4ScanResult2G40MNum,
-                        prSmartBW->u4ScanResult2G40MNum * 100 / prSmartBW->u4ScanResult2GNum,
-                        prSmartBW->u4ScanResult5GNum, prSmartBW->u4ScanResult5G160MNum,
-                        prSmartBW->u4ScanResult5G160MNum * 100 / prSmartBW->u4ScanResult5GNum);
-                DBGLOG(SCN, TRACE, "%s\n", buf);
-                htKalWCNKeyLogWrite(buf, TYPE_LOG_SCAN_BAND_RATIO);
-        }
-#endif
-        if (prSmartBW->needSaveLog) {
-                snprintf(buf, sizeof(buf),
-                        "[SCN]: %u active Bss, %u buffered Bss, SCN2G: %u, SCN2G_40M: %u, SCN2G_40M_Ratio: %u/100, SCN5G: %u, SCN5G_160M: %u, SCN5G_160M_Ratio: %u/100",
-                        prSmartBW->u4ScanResultActiveTotalNum,
-                        prSmartBW->u4ScanResultTotalNum,
-                        prSmartBW->u4ScanResultActive2GNum, prSmartBW->u4ScanResultActive2G40MNum,
-                        prSmartBW->u4ScanResultActive2G40MNum * 100 / prSmartBW->u4ScanResultActive2GNum,
-                        prSmartBW->u4ScanResultActive5GNum, prSmartBW->u4ScanResultActive5G160MNum,
-                        prSmartBW->u4ScanResultActive5G160MNum * 100 / prSmartBW->u4ScanResultActive5GNum);
-                DBGLOG(SCN, TRACE, "%s\n", buf);
-                htKalWCNKeyLogWrite(buf, TYPE_LOG_SCAN_BAND_RATIO);
-        }
 }
 
 /* print all BSS important info, TRACE level is default off */
@@ -720,7 +656,6 @@ BOOLEAN extraCheck2GSupportBW(IN P_BSS_DESC_T prSPBssDesc)
                 ret, prSmartBW->fgIsNeedMonitorLink, prSmartBW->fgIsNeedMonitorAPIOT, isIn2G40MBlacklist(prSPBssDesc));
 
         DBGLOG(SCN, TRACE, "%s\n", buf);
-        if (prSmartBW->needSaveLog) htKalWCNKeyLogWrite(buf, TYPE_LOG_CONNECT_BAND_RATIO); /* limit the DCS log */
 
         return ret;
 }
@@ -1084,9 +1019,6 @@ void wlanMonitorAPIOTIssue(void)
 		        "[SMART_BW]: [AP_IOT_TRIGGER]: 2GBW = %d, L3PacketsTotalDif = %lu, L2TotalCountDif = %lu, AVGCurTxRate = %u, AVGCurTxPer = %u",
                         prSmartBW->ucSelectBW, L3PacketsTotalDif, u8TotalCountDif, u4GetAVGCurTxRate, u4GetAVGCurTxPer);
                 DBGLOG(SW4, INFO, "%s\n", buf);
-                if (prSmartBW->needSaveLog) {
-                        htKalWCNKeyLogWrite(buf, TYPE_LOG_CONNECT_BAND_RATIO); /* limit the DCS log */
-                }
 
                 trigger2GBWSwitch(1);
         }
@@ -1167,9 +1099,6 @@ void wlanMonitorLQStatus(void)
                         prSmartBW->ucSelectBW, prAdapter->rLinkQuality.rLq[WLAN0_BSS_INDEX].cRssi, iGetAVGL3CurSpped, prLinkQualityInfoSmooth->iL3CongestionFlag,
                         u8GetAVGIdleSlotRatio, u4GetAVGCurTxRate, u4GetAVGCurTxPer, u4GetAVGCurRxRate);
                 DBGLOG(SW4, INFO, "%s\n", buf);
-                if (prSmartBW->needSaveLog) {
-                        htKalWCNKeyLogWrite(buf, TYPE_LOG_CONNECT_BAND_RATIO); /* limit the DCS log */
-                }
 
                 trigger2GBWSwitch(1);
         }
@@ -1252,62 +1181,6 @@ void handleSmartBWSwitchResult(WLAN_STATUS eStatus)
 
         snprintf(buf, sizeof(buf), "[SMART_BW]: [TRIGGER_RESULT]: time = %lu ms, result = %d", u4TimeLast, result);
         DBGLOG(SW4, INFO, "%s\n", buf);
-        if (prSmartBW->needSaveLog) { /* limit the DCS log */
-                htKalWCNKeyLogWrite(buf, TYPE_LOG_CONNECT_BAND_RATIO);
-        }
-
 }
 
-/* WCN kernel layer log save function
- * log:  the log string end with '\0';
- * mode: log type, it will affect database UI view
-
- * alloc memory each time since this function should not be called with high frequency,
- * and if re-use pre-alloc memory, then we need to do some spin-lock to make sure data won't be conflict
- */
-signed int htKalWCNKeyLogWrite(IN const char *log, IN enum WCN_KEY_LOG_MODE mode)
-{
-        struct kernel_packet_info *user_msg_info;
-        char log_tag_scn[32] = "wifi_fool_proof";
-        char event_id_scan_band_ratio[20] = "scan_band_ratio"; /* length should less than 20 */
-        char event_id_scan_rssi_ratio[20] = "scan_rssi_ratio";
-        char event_id_connect_band_ratio[20] = "connect_band_ratio";
-
-        void* buffer = NULL;
-        int log_len = strlen(log);
-        int kevent_size;
-
-        kevent_size = sizeof(struct kernel_packet_info) + log_len + 1;   /* extra + 1 for '\0' */
-        DBGLOG(SW4, TRACE, "kevent_send_to_user, size=%d, passed in log: %s\n", kevent_size, log);
-
-        buffer = kmalloc(kevent_size, GFP_ATOMIC);
-        memset(buffer, 0, kevent_size);
-        user_msg_info = (struct kernel_packet_info *)buffer;
-        user_msg_info->type = 1;
-
-        /* snprintf is better than memcpy, strncpy etc.., since snprintf will make sure the dest has '\0' in the end */
-        /* snprintf behavior is different in GCC & VC, gcc the size contains the '\0', so it's more safe */
-        snprintf(user_msg_info->log_tag, sizeof(user_msg_info->log_tag), "%s", log_tag_scn);
-        switch (mode) {
-        case TYPE_LOG_SCAN_BAND_RATIO:
-                snprintf(user_msg_info->event_id, sizeof(user_msg_info->event_id), "%s", event_id_scan_band_ratio);
-                break;
-        case TYPE_LOG_SCAN_RSSI_RATIO:
-                snprintf(user_msg_info->event_id, sizeof(user_msg_info->event_id), "%s", event_id_scan_rssi_ratio);
-                break;
-        case TYPE_LOG_CONNECT_BAND_RATIO:
-                snprintf(user_msg_info->event_id, sizeof(user_msg_info->event_id), "%s", event_id_connect_band_ratio);
-                break;
-        default:
-                snprintf(user_msg_info->event_id, sizeof(user_msg_info->event_id), "%s", event_id_scan_band_ratio);
-                break;
-        }
-        snprintf(user_msg_info->payload, log_len + 1, "%s", log); /* snprintf len uses sizeof(payload) */
-        user_msg_info->payload_length = log_len + 1;
-
-        kevent_send_to_user(user_msg_info);
-        kfree(buffer);
-
-        return 0;
-}
 #endif /* OPLUS_FEATURE_WIFI_SMART_BW*/

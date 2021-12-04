@@ -701,11 +701,6 @@ void arch_reset(char mode, const char *cmd)
 		oppo_rtc_mark_factory();
 	} else if (cmd && !strcmp(cmd, "safe")) {
 		oppo_rtc_mark_safe();
-//xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest
-#ifdef OPLUS_FEATURE_AGINGTEST
-	} else if (cmd && (!strcmp(cmd, "sblmemtest") || !strcmp(cmd, "usermemaging"))) {
-		oppo_rtc_mark_agingtest();
-#endif /*OPLUS_FEATURE_AGINGTEST */
 #endif
 	} else {
 		reboot = WD_SW_RESET_BYPASS_PWR_KEY;

@@ -14,11 +14,7 @@ config FS_IOMAP
 	bool
 
 source "fs/ext2/Kconfig"
-#if OPLUS_FEATURE_EXT4_SUPPORT
-source "fs/oext4/Kconfig"
-#else
-#source "fs/ext4/Kconfig"
-#endif
+source "fs/ext4/Kconfig"
 source "fs/jbd2/Kconfig"
 
 config FS_MBCACHE
@@ -36,12 +32,7 @@ source "fs/gfs2/Kconfig"
 source "fs/ocfs2/Kconfig"
 source "fs/btrfs/Kconfig"
 source "fs/nilfs2/Kconfig"
-#ifdef VENDOR_EDIT
-#Yuwei.Guan@TECH.Storage.FS.OF2FS,2020/04/18, add to use of2fs Kconfig
-source "fs/of2fs/Kconfig"
-#else
-#source "fs/f2fs/Kconfig"
-#endif
+source "fs/f2fs/Kconfig"
 
 config FS_DAX
 	bool "Direct Access (DAX) support"
@@ -321,16 +312,8 @@ source "fs/nls/Kconfig"
 source "fs/dlm/Kconfig"
 source "fs/unicode/Kconfig"
 
-#if OPLUS_FEATURE_SDCARDFS_SUPPORT
-source "fs/osdcardfs/Kconfig"
-#else
-#source "fs/sdcardfs/Kconfig"
-#endif
+source "fs/sdcardfs/Kconfig"
 
-#if OPLUS_FEATURE_EXFAT_SUPPORT
-source "fs/oexfat/Kconfig"
-#else
-#source "fs/exfat/Kconfig"
-#endif
+source "fs/exfat/Kconfig"
 
 endmenu

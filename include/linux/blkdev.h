@@ -146,12 +146,6 @@ struct request {
 	int cpu;
 	unsigned int cmd_flags;		/* op and common flags */
 	req_flags_t rq_flags;
-#if defined(OPLUS_FEATURE_IOMONITOR) && defined(CONFIG_IOMONITOR)
-	ktime_t req_tg;
-	ktime_t req_ti;
-	ktime_t req_td;
-	ktime_t req_tc;
-#endif /*OPLUS_FEATURE_IOMONITOR*/
 
 #ifdef VENDOR_EDIT
 /*Hank.liu@PSW.BSP Kernel IO Latency  2019-03-19,Add some info in each request*/
@@ -171,10 +165,6 @@ struct request {
 
 	struct bio *bio;
 	struct bio *biotail;
-#if defined(OPLUS_FEATURE_FG_IO_OPT) && defined(CONFIG_OPPO_FG_IO_OPT)
-/*Huacai.Zhou@Tech.Kernel.MM, 2020-03-23,add foreground io opt*/
-	struct list_head fg_list;
-#endif /*OPLUS_FEATURE_FG_IO_OPT*/
 	/*
 	 * The hash is used inside the scheduler, and killed once the
 	 * request reaches the dispatch list. The ipi_list is only used
@@ -428,14 +418,6 @@ struct request_queue {
 	 * Together with queue_head for cacheline sharing
 	 */
 	struct list_head	queue_head;
-	#if defined(OPLUS_FEATURE_FG_IO_OPT) && defined(CONFIG_OPPO_FG_IO_OPT)
-/*Huacai.Zhou@Tech.Kernel.MM, 2020-03-23,add foreground io opt*/
-	struct list_head	fg_head;
-	int fg_count;
-	int both_count;
-	int fg_count_max;
-	int both_count_max;
-#endif /*OPLUS_FEATURE_FG_IO_OPT*/
 	struct request		*last_merge;
 	struct elevator_queue	*elevator;
 	int			nr_rqs[2];	/* # allocated [a]sync rqs */
@@ -563,13 +545,7 @@ struct request_queue {
 	struct list_head	tag_busy_list;
 
 	unsigned int		nr_sorted;
-#ifndef OPLUS_FEATURE_HEALTHINFO
-// jiheng.xie@PSW.Tech.BSP.Performance, 2019/03/11
-// Modify for ioqueue
 	unsigned int		in_flight[2];
-#else /* OPLUS_FEATURE_HEALTHINFO */
-	unsigned int		in_flight[4];
-#endif /* OPLUS_FEATURE_HEALTHINFO */
 	/*
 	 * Number of active block driver functions for which blk_drain_queue()
 	 * must wait. Must be incremented around functions that unlock the
@@ -772,29 +748,6 @@ static inline void queue_flag_clear(unsigned int flag, struct request_queue *q)
 	queue_lockdep_assert_held(q);
 	__clear_bit(flag, &q->queue_flags);
 }
-#ifdef OPLUS_FEATURE_HEALTHINFO
-// jiheng.xie@PSW.Tech.BSP.Performance, 2019/03/11
-// Add for ioqueue
-#ifdef CONFIG_OPPO_HEALTHINFO
-static inline void ohm_ioqueue_add_inflight(struct request_queue *q,
-					     struct request *rq)
-{
-	if (rq->cmd_flags & REQ_FG)
-		q->in_flight[BLK_RW_FG]++;
-	else
-		q->in_flight[BLK_RW_BG]++;
-}
-
-static inline void ohm_ioqueue_dec_inflight(struct request_queue *q,
-					     struct request *rq)
-{
-	if (rq->cmd_flags & REQ_FG)
-		q->in_flight[BLK_RW_FG]--;
-	else
-		q->in_flight[BLK_RW_BG]--;
-}
-#endif
-#endif /* OPLUS_FEATURE_HEALTHINFO */
 #define blk_queue_tagged(q)	test_bit(QUEUE_FLAG_QUEUED, &(q)->queue_flags)
 #define blk_queue_stopped(q)	test_bit(QUEUE_FLAG_STOPPED, &(q)->queue_flags)
 #define blk_queue_dying(q)	test_bit(QUEUE_FLAG_DYING, &(q)->queue_flags)

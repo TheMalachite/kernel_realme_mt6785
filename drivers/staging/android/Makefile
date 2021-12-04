@@ -10,8 +10,3 @@ obj-$(CONFIG_ANDROID_INTF_ALARM_DEV)	+= alarm-dev.o
 obj-$(CONFIG_OPPO_HANS) += hans.o
 obj-$(CONFIG_OPPO_HANS) += hans_netfilter.o
 #endif /*OPLUS_FEATURE_HANS_FREEZE*/
-
-#ifdef VENDOR_EDIT
-#Huacai.Zhou@PSW.BSP.kernel.Peformance, 2018/06/18, add foreground process opt support
-obj-y   += oppo_ion/
-#endif /* VENDOR_EDIT */

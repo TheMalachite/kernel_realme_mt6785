@@ -578,17 +578,10 @@ struct vsync_trigger_time {
 enum DynFPS_LEVEL {
 	DFPS_LEVEL0 = 0,
 	DFPS_LEVEL1,
-#ifdef OPLUS_FEATURE_DFPS3_SUPPORT
-	DFPS_LEVEL2,
-#endif
 	DFPS_LEVELNUM,
 };
 
-#ifdef OPLUS_FEATURE_DFPS3_SUPPORT
-#define DFPS_LEVELS 3
-#else
 #define DFPS_LEVELS 2
-#endif
 enum FPS_CHANGE_INDEX {
 	DYNFPS_NOT_DEFINED = 0,
 	DYNFPS_DSI_VFP = 1,

@@ -55,10 +55,6 @@ enum rtc_spare_enum {
 #endif /* VENDOR_EDIT */
 /*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
 	RTC_SAFE_BOOT,
-/* xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest */
-#ifdef OPLUS_FEATURE_AGINGTEST
-	RTC_AGINGTEST_BOOT,
-#endif /*OPLUS_FEATURE_AGINGTEST */
 	RTC_SPAR_NUM
 };
 

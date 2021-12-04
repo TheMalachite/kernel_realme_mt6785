@@ -593,10 +593,6 @@ enum ISP_CMD_ENUM {
 	SV_CMD_SET_PM_QOS_INFO,
 	ISP_CMD_SET_SEC_DAPC_REG,
 	ISP_CMD_NOTE_CQTHR0_BASE,
-        #ifdef OPLUS_FEATURE_PERFORMANCE
-        //xiaowei.xu@cam.drv, 20210514, add for fix isp drop request
-	ISP_CMD_SET_VIR_CQCNT
-        #endif
 };
 
 enum ISP_HALT_DMA_ENUM {
@@ -671,12 +667,6 @@ enum ISP_HALT_DMA_ENUM {
 #define ISP_GET_DUMP_INFO          _IOWR(ISP_MAGIC, ISP_CMD_GET_DUMP_INFO, struct ISP_GET_DUMP_INFO_STRUCT)
 
 #define ISP_SET_SEC_DAPC_REG        _IOW(ISP_MAGIC, ISP_CMD_SET_SEC_DAPC_REG, unsigned int)
-
-#ifdef OPLUS_FEATURE_PERFORMANCE
-//xiaowei.xu@cam.drv, 20210514, add for fix isp drop request
-#define ISP_SET_VIR_CQCNT \
-	_IOWR(ISP_MAGIC, ISP_CMD_SET_VIR_CQCNT, unsigned int*)
-#endif
 
 #ifdef CONFIG_COMPAT
 #define COMPAT_ISP_READ_REGISTER    _IOWR(ISP_MAGIC, ISP_CMD_READ_REG,      struct compat_ISP_REG_IO_STRUCT)

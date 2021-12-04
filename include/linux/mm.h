@@ -26,15 +26,6 @@
 #include <linux/page_ref.h>
 #include <linux/memremap.h>
 
-#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
-//Peifeng.Li@PSW.Kernel.BSP.Memory, 2020/04/22,virtual reserve memory
-#include <linux/sched.h>
-#include <linux/vm_anti_fragment.h>
-extern void account_vma_alloc_err(unsigned long len);
-extern int cpu_oom_event_enable;
-extern void trigger_cpu_oom_event(unsigned long len);
-#endif
-
 struct mempolicy;
 struct anon_vma;
 struct anon_vma_chain;
@@ -224,17 +215,6 @@ extern unsigned int kobjsize(const void *objp);
 #define VM_HUGEPAGE	0x20000000	/* MADV_HUGEPAGE marked this vma */
 #define VM_NOHUGEPAGE	0x40000000	/* MADV_NOHUGEPAGE marked this vma */
 #define VM_MERGEABLE	0x80000000	/* KSM may merge identical pages */
-
-#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
-/* Kui.Zhang@PSW.TEC.KERNEL.Performance, 2019/03/18,
- * new vm flags of vma in reserved area
- */
-#define VM_BACKUP_CREATE 0x100000000UL	/* Created backup vma for emergency */
-#define VM_BACKUP_ALLOC  0x200000000UL	/* Alloced memory from backup vma */
-
-#define BACKUP_ALLOC_FLAG(vm_flags) ((vm_flags) & VM_BACKUP_ALLOC)
-#define BACKUP_CREATE_FLAG(vm_flags) ((vm_flags) & VM_BACKUP_CREATE)
-#endif
 
 #ifdef CONFIG_ARCH_USES_HIGH_VMA_FLAGS
 #define VM_HIGH_ARCH_BIT_0	32	/* bit only usable on 64-bit architectures */
@@ -2420,12 +2400,6 @@ struct vm_unmapped_area_info {
 extern unsigned long unmapped_area(struct vm_unmapped_area_info *info);
 extern unsigned long unmapped_area_topdown(struct vm_unmapped_area_info *info);
 
-#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
-//Peifeng.Li@PSW.Kernel.BSP.Memory, 2020/04/22,virtual reserve memory
-#define VMA_BIG_SIZE (0x40000)
-extern int vm_search_two_way;
-#endif
-
 /*
  * Search for an unmapped address range.
  *
@@ -2438,22 +2412,6 @@ extern int vm_search_two_way;
 static inline unsigned long
 vm_unmapped_area(struct vm_unmapped_area_info *info)
 {
-#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
-/*Peifeng.Li@PSW.BSP.Kernel.MM 2019-09-28 account vma alloc failed*/
-
-    if (!test_thread_flag(TIF_32BIT) || !current->mm)
-        goto no_32bit;
-
-    if (!current->mm->vm_search_two_way || (vm_search_two_way != 3))
-		goto no_32bit;
-
-    if (info->length >= VMA_BIG_SIZE)
-        return unmapped_area_topdown(info);
-	else
-        return unmapped_area(info);
-
-no_32bit:
-#endif
 	if (info->flags & VM_UNMAPPED_AREA_TOPDOWN)
 		return unmapped_area_topdown(info);
 	else
@@ -2534,14 +2492,6 @@ static inline unsigned long vm_start_gap(struct vm_area_struct *vma)
 {
 	unsigned long vm_start = vma->vm_start;
 
-#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
-	/* Kui.Zhang@PSW.TEC.KERNEL.Performance, 2019/03/18,
-	 * reserved vma check
-	 */
-	if (BACKUP_ALLOC_FLAG(vma->vm_flags))
-		return vm_start;
-#endif
-
 	if (vma->vm_flags & VM_GROWSDOWN) {
 		vm_start -= stack_guard_gap;
 		if (vm_start > vma->vm_start)
@@ -2553,14 +2503,6 @@ static inline unsigned long vm_start_gap(struct vm_area_struct *vma)
 static inline unsigned long vm_end_gap(struct vm_area_struct *vma)
 {
 	unsigned long vm_end = vma->vm_end;
-
-#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
-	/* Kui.Zhang@PSW.TEC.KERNEL.Performance, 2019/03/18,
-	 * reserved vma check
-	 */
-	if (BACKUP_ALLOC_FLAG(vma->vm_flags))
-		return vm_end;
-#endif
 
 	if (vma->vm_flags & VM_GROWSUP) {
 		vm_end += stack_guard_gap;

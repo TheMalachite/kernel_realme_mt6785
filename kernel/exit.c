@@ -68,13 +68,6 @@
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
 
-#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
-/* Kui.Zhang@PSW.TEC.KERNEL.Performance, 2019/01/22,
- * reserved area operations
- */
-#include <linux/resmap_account.h>
-#endif
-
 static void __unhash_process(struct task_struct *p, bool group_dead)
 {
 	nr_threads--;
@@ -84,10 +77,6 @@ static void __unhash_process(struct task_struct *p, bool group_dead)
 		detach_pid(p, PIDTYPE_SID);
 
 		list_del_rcu(&p->tasks);
-#if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_ION) && defined(CONFIG_DUMP_TASKS_MEM)
-		/* Peifeng.Li@BSP.Kernel.MM, 2020-05-20 delete the task */
-		list_del_rcu(&p->user_tasks);
-#endif
 		list_del_init(&p->sibling);
 		__this_cpu_dec(process_counts);
 	}
@@ -585,12 +574,6 @@ static void exit_mm(void)
 	enter_lazy_tlb(mm, current);
 	task_unlock(current);
 	mm_update_next_owner(mm);
-#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_OPPO_HEALTHINFO) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
-	/* Kui.Zhang@PSW.TEC.KERNEL.Performance, 2019/03/18,
-	 * Trigger and upload the event.
-	 */
-	trigger_svm_oom_event(mm, false, false);
-#endif
 	mmput(mm);
 	if (test_thread_flag(TIF_MEMDIE))
 		exit_oom_victim();

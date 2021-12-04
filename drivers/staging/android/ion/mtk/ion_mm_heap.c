@@ -53,10 +53,6 @@
 #define MTK_ION_MAPPING_PERF_DEBUG
 #endif
 
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-#include "oplus_ion_boost_pool.h"
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
-
 struct ion_mm_buffer_info {
 	int module_id;
 	int fix_module_id;
@@ -122,9 +118,6 @@ struct ion_system_heap {
 	struct ion_heap heap;
 	struct ion_page_pool **pools;
 	struct ion_page_pool **cached_pools;
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	struct ion_boost_pool *boost_pool;
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 };
 
 struct page_info {
@@ -170,13 +163,6 @@ static void free_buffer_page(struct ion_system_heap *heap,
 	bool cached = ion_buffer_cached(buffer);
 	int order_idx = order_to_index(order);
 	unsigned long private_flags = buffer->private_flags;
-
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	if (heap->boost_pool) {
-		if (0 == boost_pool_free(heap->boost_pool, page, order))
-			return;
-	}
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 
 	if (!cached && !(private_flags & ION_PRIV_FLAG_SHRINKER_FREE)) {
 		struct ion_page_pool *pool = heap->pools[order_idx];
@@ -380,14 +366,6 @@ static int ion_mm_heap_allocate(struct ion_heap *heap,
 #ifdef CONFIG_MTK_PSEUDO_M4U
 	struct page *page;
 #endif
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	struct ion_boost_pool *boost_pool = sys_heap->boost_pool;
-#ifdef BOOSTPOOL_DEBUG
-	int boostpool_order[3] = {0};
-	unsigned long alloc_start = jiffies;
-#endif /* BOOSTPOOL_DEBUG */
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
-
 	INIT_LIST_HEAD(&pages);
 	if (size / PAGE_SIZE > totalram_pages / 2) {
 		IONMSG("%s size %lu is larger than totalram_pages.\n", __func__,
@@ -396,53 +374,6 @@ static int ion_mm_heap_allocate(struct ion_heap *heap,
 	}
 
 	start = sched_clock();
-
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	if (boost_pool && (is_allocator_svc(current) ||
-			   heap->id == ION_HEAP_TYPE_MULTIMEDIA_FOR_CAMERA)) {
-		while (size_remaining > 0) {
-			info = kmalloc(sizeof(*info), GFP_KERNEL);
-			if (!info)
-				break;
-			page = boost_pool_allocate(boost_pool,
-						   size_remaining, max_order);
-			if (!page) {
-				kfree(info);
-				break;
-			}
-
-			info->page = page;
-			/* TODO if not use GFP_COMP, we should save page order. */
-			info->order = compound_order(page);
-			INIT_LIST_HEAD(&info->list);
-
-#ifdef BOOSTPOOL_DEBUG
-			boostpool_order[order_to_index(info->order)] += 1;
-#endif /* BOOSTPOOL_DEBUG */
-
-			list_add_tail(&info->list, &pages);
-
-			size_remaining -= (1 << info->order) * PAGE_SIZE;
-			max_order = info->order;
-			i++;
-		}
-
-
-#ifdef BOOSTPOOL_DEBUG
-		if (size_remaining != 0 || true) {
-			pr_info("boostpool %s-%d alloc failed. boostpool_sz: %d size: %d orders(%d, %d, %d) %d ms\n",
-				__func__, sys_heap->heap.id,
-				size_remaining, (int) size,
-				boostpool_order[0], boostpool_order[1],
-				boostpool_order[2],
-				jiffies_to_msecs(jiffies - alloc_start));
-		}
-#endif /* BOOSTPOOL_DEBUG */
-
-		max_order = orders[0];
-	}
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
-
 
 	/* add time interval to alloc 64k page in low memory status*/
 	if (((start - alloc_large_fail_ts) < 1000000000) &&
@@ -472,12 +403,6 @@ static int ion_mm_heap_allocate(struct ion_heap *heap,
 		IONMSG(" %s warn: size: %lu time: %lld ns --%d\n",
 		       __func__, size, end - start, heap->id);
 	}
-
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	if (boost_pool) {
-		boost_pool_dec_high(boost_pool, size >> PAGE_SHIFT);
-	}
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 
 	table = kzalloc(sizeof(*table), GFP_KERNEL);
 	if (!table) {
@@ -547,12 +472,6 @@ static int ion_mm_heap_allocate(struct ion_heap *heap,
 	caller_pid = 0;
 	caller_tid = 0;
 
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	if (boost_pool && (is_allocator_svc(current) ||
-			   heap->id == ION_HEAP_TYPE_MULTIMEDIA_FOR_CAMERA)) {
-		boost_pool_wakeup_process(boost_pool);
-	}
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 	return 0;
 
 err1:
@@ -729,63 +648,9 @@ static int ion_mm_heap_shrink(struct ion_heap *heap, gfp_t gfp_mask,
 	struct ion_system_heap *sys_heap;
 	int nr_total = 0;
 	int i;
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	struct ion_boost_pool *boost_pool = NULL;
-	int nr_freed;
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 
 	sys_heap = container_of(heap, struct ion_system_heap, heap);
 
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	boost_pool = sys_heap->boost_pool;
-	for (i = 0; i < num_orders; i++) {
-		if (!nr_to_scan) {
-			if (boost_pool) {
-				nr_total += boost_pool_shrink(boost_pool,
-							      boost_pool->pools[i],
-							      gfp_mask,
-							      nr_to_scan);
-			}
-			/* shrink cached pool */
-			nr_total +=
-			    ion_page_pool_shrink(sys_heap->pools[i],
-						 gfp_mask,
-						 nr_to_scan);
-			nr_total +=
-			    ion_page_pool_shrink(sys_heap->cached_pools[i],
-						 gfp_mask,
-						 nr_to_scan);
-		} else {
-			if (boost_pool) {
-				nr_freed = boost_pool_shrink(boost_pool,
-							     boost_pool->pools[i],
-							     gfp_mask,
-							     nr_to_scan);
-				nr_to_scan -= nr_freed;
-				nr_total += nr_freed;
-				if (nr_to_scan <= 0)
-					break;
-			}
-
-			nr_freed = ion_page_pool_shrink(sys_heap->pools[i],
-							gfp_mask, nr_to_scan);
-			nr_total += nr_freed;
-			nr_to_scan -= nr_freed;
-			if (nr_to_scan <= 0)
-				break;
-
-			/* shrink cached pool */
-			nr_freed =
-				ion_page_pool_shrink(sys_heap->cached_pools[i],
-						     gfp_mask,
-						     nr_to_scan);
-			nr_to_scan -= nr_freed;
-			nr_total += nr_freed;
-			if (nr_to_scan <= 0)
-				break;
-		}
-	}
-#else /* CONFIG_OPLUS_ION_BOOSTPOOL */
 	for (i = 0; i < num_orders; i++) {
 		struct ion_page_pool *pool = sys_heap->pools[i];
 
@@ -795,7 +660,6 @@ static int ion_mm_heap_shrink(struct ion_heap *heap, gfp_t gfp_mask,
 		    ion_page_pool_shrink(sys_heap->cached_pools[i], gfp_mask,
 					 nr_to_scan);
 	}
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 
 	return nr_total;
 }
@@ -1444,13 +1308,7 @@ static int ion_mm_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 		 "----------------------------------------------------\n");
 
 	/* dump all handle's backtrace */
-#ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
-	down_read(&dev->client_lock);
-#else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	down_read(&dev->lock);
-#endif /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	for (n = rb_first(&dev->clients); n; n = rb_next(n)) {
 		struct ion_client
 		*client = rb_entry(n, struct ion_client, node);
@@ -1504,13 +1362,7 @@ static int ion_mm_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 #ifdef CONFIG_MTK_IOMMU_V2
 	mtk_iommu_log_dump(s);
 #endif
-#ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
-	up_read(&dev->client_lock);
-#else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	up_read(&dev->lock);
-#endif /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 
 	return 0;
 }
@@ -1589,13 +1441,7 @@ void ion_mm_heap_memory_detail(void)
 		 "client", "dbg_name", "pid", "size", "address");
 	ION_DUMP(NULL, "--------------------------------------\n");
 
-#ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
-	if (!down_read_trylock(&dev->client_lock)) {
-#else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	if (!down_read_trylock(&dev->lock)) {
-#endif /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 		ION_DUMP(NULL,
 			 "detail trylock fail, alloc pid(%d-%d)\n",
 				     caller_pid, caller_tid);
@@ -1648,13 +1494,7 @@ void ion_mm_heap_memory_detail(void)
 	ION_DUMP(NULL, "%s\n", seq_log);
 
 	if (need_dev_lock)
-#ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
-		up_read(&dev->client_lock);
-#else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 		up_read(&dev->lock);
-#endif /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 
 	ION_DUMP(NULL, "---------ion_mm_heap buffer info------\n");
 
@@ -1831,13 +1671,7 @@ size_t get_ion_heap_by_pid(pid_t pid)
 	enum mtk_ion_heap_type cam_heap = ION_HEAP_TYPE_MULTIMEDIA_FOR_CAMERA;
 	enum mtk_ion_heap_type mm_heap = ION_HEAP_TYPE_MULTIMEDIA;
 
-#ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
-	if (!down_read_trylock(&dev->client_lock))
-#else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	if (!down_read_trylock(&dev->lock))
-#endif /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 		return 0;
 	for (n = rb_first(&dev->clients); n; n = rb_next(n)) {
 		struct ion_client *client = rb_entry(n, struct ion_client, node);
@@ -1860,13 +1694,7 @@ size_t get_ion_heap_by_pid(pid_t pid)
 			mutex_unlock(&client->lock);
 		}
 	}
-#ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
-	up_read(&dev->client_lock);
-#else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	up_read(&dev->lock);
-#endif /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	return buffer_size/1024;
 }
 EXPORT_SYMBOL(get_ion_heap_by_pid);
@@ -1916,30 +1744,6 @@ struct ion_heap *ion_mm_heap_create(struct ion_platform_heap *unused)
 
 	heap->heap.debug_show = ion_mm_heap_debug_show;
 	ion_comm_init();
-#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
-	heap->boost_pool = NULL;
-	if (!IS_ERR_OR_NULL(boost_root_dir)) {
-		if (unused->id == ION_HEAP_TYPE_MULTIMEDIA_FOR_CAMERA) {
-			heap->boost_pool = boost_pool_create(ION_HEAP_TYPE_MULTIMEDIA_FOR_CAMERA,
-							     128 * 256,
-							     boost_root_dir,
-							     "camera");
-			if (!heap->boost_pool) {
-				pr_err("%s: create boost_pool failed!\n",
-				       __func__);
-			}
-		} else if (unused->id == ION_HEAP_TYPE_MULTIMEDIA) {
-			heap->boost_pool = boost_pool_create(ION_HEAP_TYPE_MULTIMEDIA,
-							     64 * 256,
-							     boost_root_dir,
-							     "graphic");
-			if (!heap->boost_pool) {
-				pr_err("%s: create boost_pool failed!\n",
-				       __func__);
-			}
-		}
-	}
-#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 	return &heap->heap;
 
 err_create_pool:
