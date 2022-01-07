@@ -275,7 +275,7 @@ static struct pmic_irq_count_desc_t pmic_irq_info = {
 	.ws_number = 82,
 };
 
-void pmic_irq_count_function_init()
+void pmic_irq_count_function_init(void)
 {
 	int i = 0;
 
@@ -964,7 +964,7 @@ void oplus_rpmh_stats_statics(const char *rpm_name, u64 sleep_count,
 
 EXPORT_SYMBOL(oplus_rpmh_stats_statics);
 
-static void dump_rpmh_state()
+static void dump_rpmh_state(void)
 {
 	int i, len, suspendrate;
 	struct rpmh_state_desc_t *desc;
@@ -1001,7 +1001,7 @@ static void dump_rpmh_state()
 	PR_INFO("--->Screen_off_time=%lld(s)\n", screen_off_time);
 }
 
-void oplus_rpm_stats_statics_clear()
+void oplus_rpm_stats_statics_clear(void)
 {
 	int i, len;
 	struct rpmh_state_desc_t *desc;
@@ -1534,7 +1534,7 @@ static ssize_t active_max_store(struct kobject *kobj,
 	return count;
 }
 
-static void dump_active_max()
+static void dump_active_max(void)
 {
 	int srcuidx, i, j;
 	int max_ws_rate;
