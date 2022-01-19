@@ -30,7 +30,6 @@ config OPLUS_FEATURE_DETAILHEAD
     help
         define this config to add cpu number and current id and current comm to kmsg
 
-source "drivers/soc/oplus/system/feedback/Kconfig"
 source "drivers/soc/oplus/system/uboot_log/Kconfig"
 source "drivers/soc/oplus/system/shutdown_detect/Kconfig"
 source "drivers/soc/oplus/system/slabtrace/Kconfig"
@@ -53,11 +52,6 @@ source "drivers/soc/oplus/system/oppo_gpio/Kconfig"
 #ZhangFei@BSP.Kernel.Stability, 2020/04/03, Add for qcom pmic watchdog
 source "drivers/soc/oplus/system/qcom_pmicwd/Kconfig"
 #endif /* OPLUS_FEATURE_QCOM_PMICWD */
-
-#ifdef OPLUS_FEATURE_MM_FEEDBACK
-#Zhao.Pan@MULTIMEDIA.AUDIODRIVER.KERNEL, 2020/08/08, Add for multimedia kevent feedback driver
-source "drivers/soc/oplus/system/oplus_mm_fb/Kconfig"
-#endif /* OPLUS_FEATURE_MM_FEEDBACK */
 
 #ifdef OPLUS_FEATURE_QCOM_WATCHDOG
 #yanghao@BSP.Kernel.Stability, 2020/04/03, Add for qcom pmic watchdog

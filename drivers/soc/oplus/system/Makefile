@@ -5,7 +5,6 @@
 #
 
 obj-y 	+= platform.o
-obj-$(CONFIG_OPLUS_FEATURE_FEEDBACK) 	+= feedback/
 obj-$(CONFIG_OPLUS_FEATURE_UBOOT_LOG) 	+= uboot_log/
 obj-$(CONFIG_OPLUS_FEATURE_SHUTDOWN_DETECT)    += shutdown_detect/
 obj-$(CONFIG_OPLUS_FEATURE_SLABTRACE_DEBUG) +=  slabtrace/
@@ -31,11 +30,6 @@ obj-$(CONFIG_OPLUS_OPPO_GPIO)    +=  oppo_gpio/
 #ifdef OPLUS_FEATURE_QCOM_PMICWD
 obj-$(CONFIG_OPLUS_FEATURE_QCOM_PMICWD)     += qcom_pmicwd/
 #endif /* OPLUS_FEATURE_QCOM_PMICWD */
-
-#ifdef OPLUS_FEATURE_MM_FEEDBACK
-#Zhao.Pan@MULTIMEDIA.AUDIODRIVER.KERNEL, 2020/08/08, Add for multimedia kevent feedback driver
-obj-$(CONFIG_OPLUS_FEATURE_MM_FEEDBACK)         += oplus_mm_fb/
-#endif /* OPLUS_FEATURE_MM_FEEDBACK */
 
 #ifdef OPLUS_FEATURE_QCOM_WATCHDOG
 obj-$(CONFIG_OPLUS_FEATURE_QCOM_WATCHDOG)     += qcom_watchdog/
