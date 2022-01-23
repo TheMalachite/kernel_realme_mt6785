@@ -3723,7 +3723,7 @@ static void sec_init_oppo_apk_op(struct touchpanel_data *ts)
 
 
 /*********** Start of I2C Driver and Implementation of it's callbacks*************************/
-static int sec_tp_probe(struct i2c_client *client, const struct i2c_device_id *id)
+static int __initdata sec_tp_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
     struct chip_data_s6sy791 *chip_info = NULL;
     struct touchpanel_data *ts = NULL;
@@ -3859,7 +3859,7 @@ static const struct dev_pm_ops tp_pm_ops = {
 #endif
 };
 
-static struct i2c_driver tp_i2c_driver = {
+static struct i2c_driver tp_i2c_driver __refdata = {
     .probe = sec_tp_probe,
     .remove = sec_tp_remove,
     .id_table = tp_id,

@@ -1888,7 +1888,7 @@ static int ft3518_parse_dts(struct fts_ts_data *ts_data, struct i2c_client *clie
     return 0;
 }
 
-static int fts_tp_probe(struct i2c_client *client, const struct i2c_device_id *id)
+static int __initdata fts_tp_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
     struct fts_ts_data *ts_data;
     struct touchpanel_data *ts = NULL;
@@ -2025,7 +2025,7 @@ static const struct dev_pm_ops tp_pm_ops = {
 #endif
 };
 
-static struct i2c_driver tp_i2c_driver = {
+static struct i2c_driver tp_i2c_driver __refdata = {
     .probe          = fts_tp_probe,
     .remove         = fts_tp_remove,
     .id_table   = tp_id,
