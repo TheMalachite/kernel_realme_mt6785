@@ -6402,7 +6402,7 @@ static void tp_async_secdebug (void *data)
  * entrance of common touch Driver
  * Returning zero(sucess) or negative errno(failed)
  */
-int register_common_touch_device(struct touchpanel_data *pdata)
+int __initdata register_common_touch_device(struct touchpanel_data *pdata)
 {
     struct touchpanel_data *ts = pdata;
     struct invoke_method *invoke;
