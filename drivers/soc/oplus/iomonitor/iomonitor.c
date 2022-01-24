@@ -35,7 +35,7 @@
 #include <linux/magic.h>
 #include "../../../../fs/mount.h"
 #ifdef CONFIG_IOMONITOR_WITH_F2FS
-#include "../../../../fs/of2fs/f2fs.h"
+#include "../../../../fs/f2fs/f2fs.h"
 #endif
 
 #define TMP_BUF_LEN 64

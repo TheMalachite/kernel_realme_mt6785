@@ -15,16 +15,10 @@
 export MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 subdir-ccflags-y += -Werror
 
-ifdef CONFIG_OPLUS_FEATURE_MMCPLUS
-MMC_BUILD_FOLDER :=ommc
-else
-MMC_BUILD_FOLDER :=mmc
-endif
-
 subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include
 subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include/
 subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/
-subdir-ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/$(MTK_PLATFORM)
+subdir-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/$(MTK_PLATFORM)
 
 obj-$(CONFIG_MTK_L3C_PART) += l3c_part/
 obj-$(CONFIG_MTK_EMI) += emi/

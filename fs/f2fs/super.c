@@ -1676,6 +1676,9 @@ static void default_options(struct f2fs_sb_info *sbi)
 	set_opt(sbi, NOHEAP);
 	sbi->sb->s_flags |= MS_LAZYTIME;
 	clear_opt(sbi, DISABLE_CHECKPOINT);
+#ifdef CONFIG_OPLUS_FEATURE_OF2FS
+        set_priv_opt(sbi, NOATGC);
+#endif
 	F2FS_OPTION(sbi).unusable_cap = 0;
 	/* VENDOR_EDIT guoweichao@TECH.Storage.FS.oF2FS
 	 * 2019/08/15, no need to flush_merge as we have reduced most flushes
@@ -3454,7 +3457,7 @@ static int f2fs_init_grading_ssr(struct f2fs_sb_info *sbi)
 		sbi->hot_cold_params.hot_node_waterline = SSR_HN_WATERLINE_128G;
 		sbi->hot_cold_params.warm_node_lower_limit = SSR_WN_SAPCE_LIMIT_128G;
 		sbi->hot_cold_params.warm_node_waterline = SSR_WN_WATERLINE_128G;
-		sbi->hot_cold_params.enable = GRADING_SSR_ON;
+		sbi->hot_cold_params.enable = GRADING_SSR_OFF;
 	} else {
 		sbi->hot_cold_params.hot_data_lower_limit = SSR_DEFALT_SPACE_LIMIT;
 		sbi->hot_cold_params.hot_data_waterline = SSR_DEFALT_WATERLINE;
@@ -3464,7 +3467,7 @@ static int f2fs_init_grading_ssr(struct f2fs_sb_info *sbi)
 		sbi->hot_cold_params.hot_node_waterline = SSR_DEFALT_WATERLINE;
 		sbi->hot_cold_params.warm_node_lower_limit = SSR_DEFALT_SPACE_LIMIT;
 		sbi->hot_cold_params.warm_node_waterline = SSR_DEFALT_WATERLINE;
-		sbi->hot_cold_params.enable = GRADING_SSR_ON;
+		sbi->hot_cold_params.enable = GRADING_SSR_OFF;
 	}
 	return 0;
 }

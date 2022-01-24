@@ -811,16 +811,11 @@ struct ufs_hba {
 	 */
 	#define UFSHCD_QUIRK_UFS_HCI_DISABLE_AH8_BEFORE_RDB	UFS_BIT(10)
 
-	/*
+    /*
 	 * This quirk needs to be enabled if the host controller advertises
 	 * inline encryption support but it doesn't work correctly.
 	 */
 	#define UFSHCD_QUIRK_BROKEN_CRYPTO			UFS_BIT(11)
-
-	/*
-	 * This quirk needs to be enabled if VCC drop slow
-	 */
-	#define UFSHCD_QUIRK_UFS_VCC_ALWAYS_ON			UFS_BIT(12)
 
 	unsigned int quirks;	/* Deviations from standard UFSHCI spec. */
 
@@ -984,6 +979,11 @@ struct ufs_hba {
 //Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
 	struct ufs_transmission_status_t ufs_transmission_status;
 	struct device_attribute ufs_transmission_status_attr;
+#endif
+#ifdef OPLUS_FEATURE_STORAGE_TOOL
+/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
+	u8 set_host_blocked;
+	struct work_struct ffu_write_buffer_finished_work;
 #endif
 };
 
