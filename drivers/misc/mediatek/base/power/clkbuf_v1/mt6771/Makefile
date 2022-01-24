@@ -15,12 +15,7 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/base/power/$(MTK_PLATFORM)/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/base/power/include/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/base/power/include/clkbuf_v1/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/base/power/include/clkbuf_v1/$(MTK_PLATFORM)/
-ifdef CONFIG_OPLUS_FEATURE_UFSPLUS
-UFS_BUILD_FOLDER :=oufs
-else
-UFS_BUILD_FOLDER :=ufs
-endif
-ccflags-y += -I$(srctree)/drivers/scsi/$(UFS_BUILD_FOLDER)/
+ccflags-y += -I$(srctree)/drivers/scsi/ufs/
 
 obj-y += mtk_clkbuf_hw.o
 

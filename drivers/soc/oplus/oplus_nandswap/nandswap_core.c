@@ -59,7 +59,7 @@
 #include "nandswap.h"
 
 #ifdef CONFIG_OPLUS_FEATURE_OF2FS
-#include <../../../../fs/of2fs/f2fs.h>
+#include <../../../../fs/f2fs/f2fs.h>
 #endif
 
 #define RD_SIZE 128

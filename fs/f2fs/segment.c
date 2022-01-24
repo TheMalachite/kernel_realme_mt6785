@@ -3724,7 +3724,10 @@ static int __get_segment_type_6(struct f2fs_io_info *fio)
 		struct inode *inode = fio->page->mapping->host;
 
 		if (is_cold_data(fio->page)) {
-			if (fio->sbi && fio->sbi->atgc_enabled)
+			if (fio->sbi && fio->sbi->atgc_enabled &&
+				fio->io_type == FS_DATA_IO &&
+				(fio->sbi->gc_mode == GC_IDLE_AT ||
+				fio->sbi->gc_mode == GC_NORMAL))
 				return CURSEG_FRAGMENT_DATA;
 			else
 				return CURSEG_COLD_DATA;
@@ -3808,29 +3811,13 @@ void f2fs_allocate_data_block(struct f2fs_sb_info *sbi, struct page *page,
 	if (IS_DATASEG(type))
 		down_write(&sbi->node_write);
 
-	if (from_gc && GET_SEGNO(sbi, old_blkaddr) == NULL_SEGNO) {
-		struct inode *ino = NULL;
-		if (page && page->mapping) {
-			ino = page->mapping->host;
-			f2fs_err(sbi,
-			"invalid old_blk %x, page index %lu, status %x",
-					old_blkaddr, page->index, page->flags);
-			f2fs_err(sbi,
-			"ino %lu i_mode %x,i_size %llu, i_advise %x, flags %x",
-					ino->i_ino, ino->i_mode, ino->i_size,
-					F2FS_I(ino)->i_advise, F2FS_I(ino)->flags);
-		}
-		from_gc = false;
-		type = CURSEG_COLD_DATA;
-		curseg = CURSEG_I(sbi, type);
-		WARN_ON(1);
-	}
 	down_read(&SM_I(sbi)->curseg_lock);
 
 	mutex_lock(&curseg->curseg_mutex);
 	down_write(&sit_i->sentry_lock);
 
 	if (from_gc) {
+		f2fs_bug_on(sbi, GET_SEGNO(sbi, old_blkaddr) == NULL_SEGNO);
 		se = get_seg_entry(sbi, GET_SEGNO(sbi, old_blkaddr));
 		f2fs_bug_on(sbi, IS_NODESEG(se->type));
 	}
@@ -5271,7 +5258,9 @@ int f2fs_build_segment_manager(struct f2fs_sb_info *sbi)
 		sm_info->rec_prefree_segments = DEF_MAX_RECLAIM_PREFREE_SEGMENTS;
 
 	if (!f2fs_lfs_mode(sbi))
-		sm_info->ipu_policy = 1 << F2FS_IPU_FSYNC;
+		sm_info->ipu_policy = 1 << F2FS_IPU_FSYNC |
+					1 << F2FS_IPU_ASYNC |
+					1 << F2FS_IPU_SSR_UTIL;
 	sm_info->min_ipu_util = DEF_MIN_IPU_UTIL;
 	sm_info->min_fsync_blocks = DEF_MIN_FSYNC_BLOCKS;
 	sm_info->min_seq_blocks = sbi->blocks_per_seg * sbi->segs_per_sec;
