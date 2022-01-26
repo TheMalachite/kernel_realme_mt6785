@@ -256,7 +256,7 @@ struct backing_file_context {
 	 * 0 means there are no metadata records.
 	 */
 	loff_t bc_last_md_record_offset;
-	
+
 	/*
 	 * Credentials to set before reads/writes
 	 * Note that this is a pointer to the mount_info mi_owner field so
@@ -292,7 +292,7 @@ loff_t incfs_get_end_offset(struct file *f);
 /* Backing file context management */
 struct mount_info;
 struct backing_file_context *incfs_alloc_bfc(struct mount_info *mi,
-						struct file *backing_file);
+					     struct file *backing_file);
 
 void incfs_free_bfc(struct backing_file_context *bfc);
 
@@ -343,7 +343,9 @@ int incfs_read_blockmap_entries(struct backing_file_context *bfc,
 int incfs_read_next_metadata_record(struct backing_file_context *bfc,
 				    struct metadata_handler *handler);
 
+ssize_t incfs_kread(struct backing_file_context *bfc, void *buf, size_t size,
+		    loff_t pos);
+ssize_t incfs_kwrite(struct backing_file_context *bfc, const void *buf,
+		     size_t size, loff_t pos);
 
-ssize_t incfs_kread(struct backing_file_context *bfc, void *buf, size_t size, loff_t pos);
-ssize_t incfs_kwrite(struct backing_file_context *bfc, const void *buf, size_t size, loff_t pos);
 #endif /* _INCFS_FORMAT_H */

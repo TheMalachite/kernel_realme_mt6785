@@ -16,7 +16,7 @@
 #include "data_mgmt.h"
 
 struct backing_file_context *incfs_alloc_bfc(struct mount_info *mi,
-                                             struct file *backing_file)
+					     struct file *backing_file)
 {
 	struct backing_file_context *result = NULL;
 
@@ -533,7 +533,7 @@ int incfs_read_blockmap_entries(struct backing_file_context *bfc,
 	if (start_index < 0 || bm_base_off <= 0)
 		return -ENODATA;
 
-	result = incfs_kread(bfc, entries, bytes_to_read,bm_entry_off);
+	result = incfs_kread(bfc, entries, bytes_to_read, bm_entry_off);
 	if (result < 0)
 		return result;
 	return result / sizeof(*entries);
@@ -604,7 +604,7 @@ int incfs_read_next_metadata_record(struct backing_file_context *bfc,
 
 	memset(&handler->md_buffer, 0, max_md_size);
 	bytes_read = incfs_kread(bfc, &handler->md_buffer, max_md_size,
-				handler->md_record_offset);
+				 handler->md_record_offset);
 	if (bytes_read < 0)
 		return bytes_read;
 	if (bytes_read < sizeof(*md_hdr))
@@ -681,21 +681,21 @@ int incfs_read_next_metadata_record(struct backing_file_context *bfc,
 }
 
 ssize_t incfs_kread(struct backing_file_context *bfc, void *buf, size_t size,
-					loff_t pos)
+		    loff_t pos)
 {
 	const struct cred *old_cred = override_creds(bfc->bc_cred);
 	int ret = kernel_read(bfc->bc_file, buf, size, &pos);
-	
+
 	revert_creds(old_cred);
 	return ret;
 }
 
 ssize_t incfs_kwrite(struct backing_file_context *bfc, const void *buf,
-					size_t size, loff_t pos)
+		     size_t size, loff_t pos)
 {
 	const struct cred *old_cred = override_creds(bfc->bc_cred);
 	int ret = kernel_write(bfc->bc_file, buf, size, &pos);
-	
+
 	revert_creds(old_cred);
 	return ret;
 }
