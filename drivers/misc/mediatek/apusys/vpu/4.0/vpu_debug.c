@@ -811,32 +811,6 @@ static int vpu_debug_info(struct seq_file *s)
 	return 0;
 }
 
-#ifdef OPLUS_FEATURE_MIDAS
-int set_all_vpu_power_off_latency(uint64_t pw_off_latency) {
-	struct vpu_device *vd;
-	struct list_head *ptr, *tmp;
-
-	pr_info("set_all_vpu_power_off_latency cmd:%llu\n", pw_off_latency);
-	if (pw_off_latency > MAX_USER_SETTING_VPU_LATENCY_MS) {
-		pr_err("ERROR: Cannot set the pw_off_latency greater than 3000ms\n");
-		return -1;
-	}
-
-	mutex_lock(&vpu_drv->lock);
-	list_for_each_safe(ptr, tmp, &vpu_drv->devs) {
-		vd = list_entry(ptr, struct vpu_device, list);
-		if (NULL != vd) {
-			vd->pw_off_latency = pw_off_latency;
-			pr_info("set %s pw_off_latency:%d\n", vd->name, vd->pw_off_latency);
-		}
-	}
-	mutex_unlock(&vpu_drv->lock);
-
-	return 0;
-}
-EXPORT_SYMBOL(set_all_vpu_power_off_latency);
-#endif
-
 #define VPU_DEBUGFS_FOP_DEF(name) \
 static struct dentry *vpu_d##name; \
 static int vpu_debug_## name ##_show(struct seq_file *s, void *unused) \

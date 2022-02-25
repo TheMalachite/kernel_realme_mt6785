@@ -225,17 +225,11 @@ void cpufreq_stats_create_table(struct cpufreq_policy *policy);
 void cpufreq_stats_free_table(struct cpufreq_policy *policy);
 void cpufreq_stats_record_transition(struct cpufreq_policy *policy,
 				     unsigned int new_freq);
-#ifdef CONFIG_OPLUS_FEATURE_MIDAS
-void cpufreq_stats_idle_hook(unsigned int cpu, unsigned int in_idle);
-#endif
 #else
 static inline void cpufreq_stats_create_table(struct cpufreq_policy *policy) { }
 static inline void cpufreq_stats_free_table(struct cpufreq_policy *policy) { }
 static inline void cpufreq_stats_record_transition(struct cpufreq_policy *policy,
 						   unsigned int new_freq) { }
-#ifdef CONFIG_OPLUS_FEATURE_MIDAS
-static inline void cpufreq_stats_idle_hook(unsigned int cpu, unsigned int in_idle) { };
-#endif
 #endif /* CONFIG_CPU_FREQ_STAT */
 
 /*********************************************************************

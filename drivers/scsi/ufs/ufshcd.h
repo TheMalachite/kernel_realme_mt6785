@@ -596,35 +596,6 @@ enum ufs_crypto_state {
 	UFS_CRYPTO_HW_FBE_ENCRYPTED   = (1 << 3),
 };
 
-#ifdef OPLUS_FEATURE_MIDAS
-//Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
-struct ufs_transmission_status_t
-{
-	u8  transmission_status_enable;
-
-	u64 gear_min_write_sec;
-	u64 gear_max_write_sec;
-	u64 gear_min_read_sec;
-	u64 gear_max_read_sec;
-
-	u64 gear_min_write_us;
-	u64 gear_max_write_us;
-	u64 gear_min_read_us;
-	u64 gear_max_read_us;
-
-	u64 gear_min_dev_us;
-	u64 gear_max_dev_us;
-
-	u64 gear_min_other_sec;
-	u64 gear_max_other_sec;
-	u64 gear_min_other_us;
-	u64 gear_max_other_us;
-
-	u64 scsi_send_count;
-	u64 dev_cmd_count;
-};
-#endif /*OPLUS_FEATURE_MIDAS*/
-
 /**
  * struct ufs_hba - per adapter private structure
  * @mmio_base: UFSHCI base register address
@@ -974,17 +945,6 @@ struct ufs_hba {
 	struct keyslot_manager *ksm;
 	void *crypto_DO_NOT_USE[8];
 #endif /* CONFIG_SCSI_UFS_CRYPTO */
-
-#ifdef OPLUS_FEATURE_MIDAS
-//Jinghua.Yu@BSP.Storage.UFS 2020/06/12, Add t for ufs transmission_status for midas
-	struct ufs_transmission_status_t ufs_transmission_status;
-	struct device_attribute ufs_transmission_status_attr;
-#endif
-#ifdef OPLUS_FEATURE_STORAGE_TOOL
-/* hexiaosen@BSP.Storage.UFS 2020-08-13 add for ufs reset after ffu write buffer */
-	u8 set_host_blocked;
-	struct work_struct ffu_write_buffer_finished_work;
-#endif
 };
 
 /* MTK PATCH */

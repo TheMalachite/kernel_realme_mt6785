@@ -1238,11 +1238,9 @@ static int mmc_blk_ioctl(struct block_device *bdev, fmode_t mode,
 		mmc_blk_put(md);
 		return ret;
 	case MMC_IOC_MULTI_CMD:
-#ifndef OPLUS_FEATURE_STORAGE_TOOL
         ret = mmc_blk_check_blkdev(bdev);
         if (ret)
                 return ret;
-#endif
 		md = mmc_blk_get(bdev->bd_disk);
 		if (!md)
 			return -EINVAL;

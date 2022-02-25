@@ -123,10 +123,6 @@ u16 rtc_spare_reg[RTC_SPAR_NUM][3] = {
 /* Fuchun.Liao@BSP.CHG.Basic 2018/02/12 modify for sensor i2c err workaround */
 	{RTC_SPAR0, 0x1, 13},
 #endif 
-/* xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest */
-#ifdef OPLUS_FEATURE_AGINGTEST
-	{RTC_SPAR0, 0x01, 14},
-#endif /*OPLUS_FEATURE_AGINGTEST */
 #ifdef CONFIG_OPLUS_CHARGER_MTK6771
 /*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
 	{RTC_SPAR0, 0x01, 15},

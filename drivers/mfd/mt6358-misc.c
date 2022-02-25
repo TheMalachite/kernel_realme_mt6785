@@ -184,10 +184,6 @@ enum rtc_spare_enum {
 #endif /* VENDOR_EDIT */
 /*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
 	RTC_SAFE_BOOT,
-/*xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest*/
-#ifdef OPLUS_FEATURE_AGINGTEST
-	RTC_AGINGTEST_BOOT,
-#endif /*OPLUS_FEATURE_AGINGTEST */
 	RTC_SPAR_NUM
 };
 
@@ -235,10 +231,6 @@ u16 rtc_spare_reg[RTC_SPAR_NUM][3] = {
 #ifdef VENDOR_EDIT
 /*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
 	{RTC_SPAR0, 0x1, 15},
-/*xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest*/
-#ifdef OPLUS_FEATURE_AGINGTEST
-	{RTC_SPAR0, 0x01, 14},
-#endif /*OPLUS_FEATURE_AGINGTEST */
 #endif /* VENDOR_EDIT */
 };
 
@@ -788,19 +780,6 @@ void oppo_rtc_mark_sau(void)
 	mtk_rtc_set_spare_register(RTC_SAU_BOOT, 0x1);
 	spin_unlock_irqrestore(&rtc_misc->lock, flags);
 }
-
-//xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest
-#ifdef OPLUS_FEATURE_AGINGTEST
-void oppo_rtc_mark_agingtest(void)
-{
-	unsigned long flags;
-
-	pr_notice("rtc_mark_agingtest\n");
-	spin_lock_irqsave(&rtc_misc->lock, flags);
-	mtk_rtc_set_spare_register(RTC_AGINGTEST_BOOT, 0x01);
-	spin_unlock_irqrestore(&rtc_misc->lock, flags);
-}
-#endif /*OPLUS_FEATURE_AGINGTEST */
 
 void oppo_rtc_mark_factory(void)
 {

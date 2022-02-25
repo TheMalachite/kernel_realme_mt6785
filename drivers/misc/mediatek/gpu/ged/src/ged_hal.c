@@ -47,11 +47,6 @@ static struct dentry *gpsOppCostsEntry;
 #endif
 static struct kobject *hal_kobj;
 
-#ifdef CONFIG_OPLUS_FEATURE_MIDAS
-extern struct GED_DVFS_OPP_STAT *ged_dvfs_query_opp_status(void);
-#endif
-
-
 int tokenizer(char *pcSrc, int i32len, int *pi32IndexArray, int i32NumToken)
 {
 	int i = 0;
@@ -834,15 +829,6 @@ GED_ERROR ged_hal_init(void)
 		goto ERROR;
 	}
 
-#ifdef CONFIG_OPLUS_FEATURE_MIDAS
-    err = ged_sysfs_create_file(hal_kobj, &kobj_attr_opp_logs);
-    if (unlikely(err != GED_OK)) {
-        GED_LOGE("ged: failed to create opp_logs entry!\n");
-        goto ERROR;
-     }
-#endif
-
-
 #ifdef MTK_GED_KPI
 	err = ged_sysfs_create_file(hal_kobj, &kobj_attr_ged_kpi);
 	if (unlikely(err != GED_OK)) {
@@ -916,10 +902,6 @@ void ged_hal_exit(void)
 #endif
 #ifdef MTK_GED_KPI
 	ged_sysfs_remove_file(hal_kobj, &kobj_attr_ged_kpi);
-#endif
-
-#ifdef CONFIG_OPLUS_FEATURE_MIDAS
-    ged_sysfs_remove_file(hal_kobj, &kobj_attr_opp_logs);
 #endif
 	ged_sysfs_remove_file(hal_kobj, &kobj_attr_gpu_boost_level);
 	ged_sysfs_remove_file(hal_kobj, &kobj_attr_gpu_utilization);

@@ -593,9 +593,6 @@ end:
 	return 0;
 }
 
-#ifdef OPLUS_FEATURE_MIDAS
-		extern struct mutex g_dispcap_buffer_lock;
-#endif
 int mtk_drm_copy_wdma_cpt_v2(struct drm_crtc *crtc,
 			  struct mtk_wdma_capture_info *wdma_capt_info,
 			  u8 *buffer)
@@ -623,11 +620,6 @@ end:
 	return 0;
 }
 
-#ifdef OPLUS_FEATURE_MIDAS
-	typedef void (*fp_buffer_complete_notify)(void *user_buffer);
-	extern fp_buffer_complete_notify buffer_complete_notify;
-#endif
-
 static unsigned int mtk_drm_calculate_capture_interval(struct drm_crtc *crtc,
 	unsigned int interval)
 {
@@ -650,25 +642,12 @@ static unsigned int mtk_drm_calculate_capture_interval(struct drm_crtc *crtc,
 			buf_index = wdma_capture_info->buf_index;
 			buf_index = 1 - buf_index;
 			wdma_capture_info->buf_index = buf_index;
-#ifdef OPLUS_FEATURE_MIDAS
-			mutex_lock(&g_dispcap_buffer_lock);
-			if (NULL != wdma_capture_info->user_buffer) {
-				mtk_drm_copy_wdma_cpt_v2(crtc, wdma_capture_info,
-					wdma_capture_info->user_buffer);
-				if (NULL != buffer_complete_notify) {
-					buffer_complete_notify(wdma_capture_info->user_buffer);
-				}
-				wdma_capture_info->user_buffer = 0;
-			}
-			mutex_unlock(&g_dispcap_buffer_lock);
-#else
 			mtk_drm_copy_wdma_cpt_v2(crtc, wdma_capture_info,
 				wdma_capture_info->user_buffer);
 			mtk_drm_mmp_user_buffer_v2(crtc, wdma_capture_info,
 				wdma_capture_info->user_buffer);
 			kfree(wdma_capture_info->user_buffer);
 			wdma_capture_info->user_buffer = 0;
-#endif
 			if (interval == 1) {
 				buf_index = 1 - buf_index;
 				wdma_capture_info->buf_index = buf_index;
@@ -705,25 +684,12 @@ static unsigned int mtk_drm_calculate_capture_interval(struct drm_crtc *crtc,
 					wdma_capture_info->capture_count = 0;
 				else
 					wdma_capture_info->capture_count++;
-#ifdef OPLUS_FEATURE_MIDAS
-				mutex_lock(&g_dispcap_buffer_lock);
-				if (NULL != wdma_capture_info->user_buffer) {
-					mtk_drm_copy_wdma_cpt_v2(crtc, wdma_capture_info,
-						wdma_capture_info->user_buffer);
-					if (NULL != buffer_complete_notify) {
-						buffer_complete_notify(wdma_capture_info->user_buffer);
-					}
-					wdma_capture_info->user_buffer = 0;
-				}
-				mutex_unlock(&g_dispcap_buffer_lock);
-#else
 				mtk_drm_copy_wdma_cpt_v2(crtc, wdma_capture_info,
 					wdma_capture_info->user_buffer);
 				mtk_drm_mmp_user_buffer_v2(crtc, wdma_capture_info,
 					wdma_capture_info->user_buffer);
 				kfree(wdma_capture_info->user_buffer);
 				wdma_capture_info->user_buffer = 0;
-#endif
 				interval = wdma_capture_info->capture_interval;
 				if (interval == 1) {
 					buf_index = 1 - buf_index;
@@ -821,23 +787,12 @@ int mtk_drm_wdma_capture_init(struct drm_crtc *crtc)
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 	const int len = 50;
 	char name[len];
-#ifdef OPLUS_FEATURE_MIDAS
-	struct cpumask mask;
-#endif
 
 	DDPMSG("%s\n", __func__);
 
 	snprintf(name, len, "mtk_drm_disp_wdma_capt");
 	mtk_crtc->capt_task =
 		kthread_create(mtk_drm_wdma_capt_monitor_thread, crtc, name);
-#ifdef OPLUS_FEATURE_MIDAS
-	cpumask_clear(&mask);
-	cpumask_set_cpu(0, &mask);
-	cpumask_set_cpu(1, &mask);
-	cpumask_set_cpu(2, &mask);
-	cpumask_set_cpu(3, &mask);
-	kthread_bind_mask(mtk_crtc->capt_task, &mask); // bind small cores to reduce power consumption
-#endif
 	init_waitqueue_head(&mtk_crtc->capt_wq);
 	atomic_set(&mtk_crtc->capt_task_active, 0);
 
