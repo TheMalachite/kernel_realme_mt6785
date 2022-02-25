@@ -829,6 +829,14 @@ GED_ERROR ged_hal_init(void)
 		goto ERROR;
 	}
 
+#ifdef CONFIG_MTK_GPU_OPP_STATS_SUPPORT
+	err = ged_sysfs_create_file(hal_kobj, &kobj_attr_opp_logs);
+	if (unlikely(err != GED_OK)) {
+		GED_LOGE("ged: failed to create opp_logs entry!\n");
+		goto ERROR;
+	}
+#endif
+
 #ifdef MTK_GED_KPI
 	err = ged_sysfs_create_file(hal_kobj, &kobj_attr_ged_kpi);
 	if (unlikely(err != GED_OK)) {
@@ -902,6 +910,9 @@ void ged_hal_exit(void)
 #endif
 #ifdef MTK_GED_KPI
 	ged_sysfs_remove_file(hal_kobj, &kobj_attr_ged_kpi);
+#endif
+#ifdef CONFIG_MTK_GPU_OPP_STATS_SUPPORT
+	ged_sysfs_remove_file(hal_kobj, &kobj_attr_opp_logs);
 #endif
 	ged_sysfs_remove_file(hal_kobj, &kobj_attr_gpu_boost_level);
 	ged_sysfs_remove_file(hal_kobj, &kobj_attr_gpu_utilization);
